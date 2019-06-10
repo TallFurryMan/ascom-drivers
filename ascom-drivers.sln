@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29001.49
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ascom-eq500x", "ascom-eq500x\ascom-eq500x.csproj", "{64308775-BD4A-469C-BCAB-3ED830B811AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ascom-eq500x-test", "ascom-eq500x-test\ascom-eq500x-test.csproj", "{097CFA68-D08D-4C93-9BF9-8F0FE051B599}"
+	ProjectSection(ProjectDependencies) = postProject
+		{64308775-BD4A-469C-BCAB-3ED830B811AF} = {64308775-BD4A-469C-BCAB-3ED830B811AF}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64308775-BD4A-469C-BCAB-3ED830B811AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{097CFA68-D08D-4C93-9BF9-8F0FE051B599}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{097CFA68-D08D-4C93-9BF9-8F0FE051B599}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{097CFA68-D08D-4C93-9BF9-8F0FE051B599}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{097CFA68-D08D-4C93-9BF9-8F0FE051B599}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {36624CA0-30CF-4BC9-8306-5FDCC527775B}
+	EndGlobalSection
+EndGlobal
