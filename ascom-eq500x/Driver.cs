@@ -93,6 +93,7 @@ namespace ASCOM.EQ500X
         /// Variable to hold the trace logger object (creates a diagnostic log file with information that you specify)
         /// </summary>
         internal static TraceLogger tl;
+        private bool isSimulated;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EQ500X"/> class.
@@ -171,6 +172,15 @@ namespace ASCOM.EQ500X
         public bool CommandBool(string command, bool raw)
         {
             CheckConnected("CommandBool");
+
+            switch (command)
+            {
+                case "isSimulated":
+                    return isSimulated;
+                default:
+                    break;
+            }
+
             string ret = CommandString(command, raw);
             // TODO decode the return string and return true or false
             // or
@@ -218,13 +228,29 @@ namespace ASCOM.EQ500X
                     connectedState = true;
                     LogMessage("Connected Set", "Connecting to port {0}", comPort);
                     // TODO connect to the device
+                    isSimulated = true;
                 }
                 else
                 {
                     connectedState = false;
                     LogMessage("Connected Set", "Disconnecting from port {0}", comPort);
                     // TODO disconnect from the device
+                    isSimulated = false;
                 }
+            }
+        }
+
+        public bool Simulated
+        {
+            get
+            {
+                LogMessage("Simulated", "Get {0}", isSimulated);
+                return isSimulated;
+            }
+            set
+            {
+                tl.LogMessage("Simulation Set", "Not implemented");
+                throw new ASCOM.PropertyNotImplementedException("Simulated", true);
             }
         }
 

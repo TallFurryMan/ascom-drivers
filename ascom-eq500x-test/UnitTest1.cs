@@ -117,5 +117,21 @@ namespace ascom_eq500x_test
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.FocalLength);
             }
         }
+
+        [TestMethod]
+        public void TestConnection()
+        {
+            using (var device = new ASCOM.DriverAccess.Telescope("ASCOM.EQ500X.Telescope"))
+            {
+                Assert.IsFalse(device.Connected);
+                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.CommandBool("isSimulated", false));
+                device.Connected = true;
+                Assert.IsTrue(device.Connected);
+                Assert.IsTrue(device.CommandBool("isSimulated", false));
+                device.Connected = false;
+                Assert.IsFalse(device.Connected);
+                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.CommandBool("isSimulated", false));
+            }
+        }
     }
 }
