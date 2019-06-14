@@ -35,6 +35,7 @@ using ASCOM.Utilities;
 using ASCOM.DeviceInterface;
 using System.Globalization;
 using System.Collections;
+using System.IO;
 
 namespace ASCOM.EQ500X
 {
@@ -73,6 +74,8 @@ namespace ASCOM.EQ500X
         internal static string traceStateDefault = "false";
 
         internal static string comPort; // Variables to hold the currrent device configuration
+        private double m_RightAscension;
+        private double m_Declination;
 
         /// <summary>
         /// Private variable to hold the connected state
@@ -94,6 +97,7 @@ namespace ASCOM.EQ500X
         /// </summary>
         internal static TraceLogger tl;
         private bool isSimulated;
+        private Serial m_Port;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EQ500X"/> class.
@@ -171,15 +175,17 @@ namespace ASCOM.EQ500X
 
         public bool CommandBool(string command, bool raw)
         {
-            CheckConnected("CommandBool");
-
             switch (command)
             {
                 case "isSimulated":
                     return isSimulated;
+                case "setSimulated":
+                    return isSimulated = raw;
                 default:
                     break;
             }
+
+            CheckConnected("CommandBool");
 
             string ret = CommandString(command, raw);
             // TODO decode the return string and return true or false
@@ -225,17 +231,70 @@ namespace ASCOM.EQ500X
 
                 if (value)
                 {
-                    connectedState = true;
+                    if (isSimulated)
+                    {
+                        LogMessage("Connected Set", "Connecting in simulation mode");
+                        connectedState = true;
+                        return;
+                    }
+
                     LogMessage("Connected Set", "Connecting to port {0}", comPort);
-                    // TODO connect to the device
-                    isSimulated = true;
+
+                    m_Port = new Serial();
+                    m_Port.PortName = comPort;
+                    m_Port.Speed = SerialSpeed.ps9600;
+                    m_Port.DataBits = 8;
+                    m_Port.Parity = SerialParity.None;
+                    m_Port.StopBits = SerialStopBits.One;
+                    m_Port.ReceiveTimeout = 5;
+                    m_Port.DTREnable = true;
+                    m_Port.Handshake = SerialHandshake.None;
+
+                    try
+                    {
+                        m_Port.Connected = true;
+                    }
+                    catch (IOException) { }
+
+                    if (m_Port.Connected)
+                    {
+                        m_Port.Transmit(":GR#");
+                        String ra = m_Port.Receive();
+                        m_Port.Transmit(":GD#");
+                        String de = m_Port.Receive();
+
+                        if (9 == ra.Length && 10 == de.Length)
+                        {
+                            string[] ras = ra.TrimEnd('#').Split(':');
+                            string[] des = de.TrimEnd('#').Split(':');
+
+                            try
+                            {
+                                m_RightAscension = double.Parse(ras[0]) + double.Parse(ras[1]) / 60.0 + double.Parse(ras[2]) / 3600.0;
+                                m_Declination = double.Parse(des[0]) + double.Parse(des[1]) / 60.0 + double.Parse(des[2]) / 3600.0;
+
+                                connectedState = true;
+                            }
+                            catch (FormatException)
+                            {
+                                LogMessage("Connected Set", "Port {0} open, but device failed handshake", comPort);
+                                m_Port.Connected = false;
+                                m_Port.Dispose();
+                            }
+                        }
+                    }
                 }
                 else
                 {
                     connectedState = false;
                     LogMessage("Connected Set", "Disconnecting from port {0}", comPort);
-                    // TODO disconnect from the device
-                    isSimulated = false;
+
+                    if (null != m_Port)
+                    {
+                        m_Port.Connected = false;
+                        m_Port.Dispose();
+                        m_Port = null;
+                    }
                 }
             }
         }

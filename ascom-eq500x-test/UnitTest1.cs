@@ -123,14 +123,40 @@ namespace ascom_eq500x_test
         {
             using (var device = new ASCOM.DriverAccess.Telescope("ASCOM.EQ500X.Telescope"))
             {
+                bool dummy = false;
                 Assert.IsFalse(device.Connected);
-                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.CommandBool("isSimulated", false));
+                Assert.IsFalse(device.CommandBool("isSimulated", dummy));
+                try
+                {
+                    device.Connected = true;
+                    //Assert.IsTrue(device.Connected);
+                    //Assert.IsTrue(device.CommandBool("isSimulated", dummy));
+                    device.Connected = false;
+                }
+                catch (Exception) { }
+                Assert.IsFalse(device.Connected);
+                Assert.IsFalse(device.CommandBool("isSimulated", dummy));
+            }
+        }
+
+        [TestMethod]
+        public void TestSimulation()
+        {
+            using (var device = new ASCOM.DriverAccess.Telescope("ASCOM.EQ500X.Telescope"))
+            {
+                bool dummy = false;
+                Assert.IsFalse(device.Connected);
+                Assert.IsFalse(device.CommandBool("isSimulated", dummy));
+                Assert.IsTrue(device.CommandBool("setSimulated", true));
+                Assert.IsTrue(device.CommandBool("isSimulated", dummy));
                 device.Connected = true;
                 Assert.IsTrue(device.Connected);
-                Assert.IsTrue(device.CommandBool("isSimulated", false));
+                Assert.IsTrue(device.CommandBool("isSimulated", dummy));
                 device.Connected = false;
                 Assert.IsFalse(device.Connected);
-                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.CommandBool("isSimulated", false));
+                Assert.IsTrue(device.CommandBool("isSimulated", dummy));
+                Assert.IsFalse(device.CommandBool("setSimulated", false));
+                Assert.IsFalse(device.CommandBool("isSimulated", dummy));
             }
         }
     }
