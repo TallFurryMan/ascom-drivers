@@ -6,6 +6,22 @@ namespace ascom_eq500x_test
     [TestClass]
     public class TestEQ500XDriver
     {
+        public ASCOM.DriverAccess.Telescope device;
+
+        [TestInitialize]
+        public void setUp()
+        {
+            device = new ASCOM.DriverAccess.Telescope("ASCOM.EQ500X.Telescope");
+            device.CommandBool("Simulated", true);
+        }
+
+        [TestCleanup]
+        public void tearDown()
+        {
+            device.Dispose();
+            device = null;
+        }
+
         [TestMethod]
         public void TestDriverProperties()
         {
@@ -147,7 +163,7 @@ namespace ascom_eq500x_test
                 bool dummy = false;
                 Assert.IsFalse(device.Connected);
                 Assert.IsFalse(device.CommandBool("isSimulated", dummy));
-                Assert.IsTrue(device.CommandBool("setSimulated", true));
+                Assert.IsTrue(device.CommandBool("Simulated", true));
                 Assert.IsTrue(device.CommandBool("isSimulated", dummy));
                 device.Connected = true;
                 Assert.IsTrue(device.Connected);
@@ -155,9 +171,16 @@ namespace ascom_eq500x_test
                 device.Connected = false;
                 Assert.IsFalse(device.Connected);
                 Assert.IsTrue(device.CommandBool("isSimulated", dummy));
-                Assert.IsFalse(device.CommandBool("setSimulated", false));
+                Assert.IsFalse(device.CommandBool("Simulated", false));
                 Assert.IsFalse(device.CommandBool("isSimulated", dummy));
             }
+        }
+
+        [TestMethod]
+        public void TestReadScopeStatus()
+        {
+            device.Connected = true;
+
         }
     }
 }

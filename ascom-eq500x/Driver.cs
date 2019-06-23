@@ -179,7 +179,7 @@ namespace ASCOM.EQ500X
             {
                 case "isSimulated":
                     return isSimulated;
-                case "setSimulated":
+                case "Simulated":
                     return isSimulated = raw;
                 default:
                     break;
