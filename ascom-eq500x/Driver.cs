@@ -36,6 +36,7 @@ using ASCOM.DeviceInterface;
 using System.Globalization;
 using System.Collections;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace ASCOM.EQ500X
 {
@@ -98,6 +99,23 @@ namespace ASCOM.EQ500X
         internal static TraceLogger tl;
         private bool isSimulated;
         private Serial m_Port;
+        private MechanicalPoint targetMechPosition;
+        private double targetRA;
+        private double targetDEC;
+        //private double currentRA;
+        //private double currentDEC;
+        private MechanicalPoint currentMechPosition;
+        private readonly string MechanicalPoint_DEC_FormatR = "+DD:MM:SS";
+        private readonly string MechanicalPoint_DEC_FormatW = "+DDD:MM:SS";
+        private readonly string MechanicalPoint_RA_Format = "HH:MM:SS";
+
+        private struct simEQ500X
+        {
+            internal static String MechanicalDECStr;
+            internal static String MechanicalRAStr;
+            internal static object MechanicalRA;
+            internal static object MechanicalDEC;
+        };
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EQ500X"/> class.
@@ -1147,6 +1165,190 @@ namespace ASCOM.EQ500X
         {
             var msg = string.Format(message, args);
             tl.LogMessage(identifier, msg);
+        }
+        #endregion
+
+        #region Mount functionalities
+        private bool Sync(double ra, double dec)
+        {
+            targetMechPosition.RAsky = targetRA = ra;
+            targetMechPosition.DECsky = targetDEC = dec;
+
+            if (!setTargetMechanicalPosition(targetMechPosition))
+            {
+                if (!isSimulation())
+                {
+                    String b = "";
+
+                    if (getCommandString(ref b, ":CM#") < 0)
+                        goto sync_error;
+                    if ("No name" == b)
+                        goto sync_error;
+                }
+                else
+                {
+                    targetMechPosition.toStringRA(ref  simEQ500X.MechanicalRAStr);
+                    targetMechPosition.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
+                    simEQ500X.MechanicalRA = targetMechPosition.RAm;
+                    simEQ500X.MechanicalDEC = targetMechPosition.DECm;
+                }
+
+                if (getCurrentMechanicalPosition(ref currentMechPosition))
+                    goto sync_error;
+
+                //currentRA = currentMechPosition.RAsky;
+                //currentDEC = currentMechPosition.DECsky;
+                //NewRaDec(currentRA, currentDEC);
+
+                LogMessage("Sync", "Mount synced to target RA '$2' DEC '$1'", currentMechPosition.RAsky, currentMechPosition.DECsky);
+                return true;
+            }
+
+        sync_error:
+            LogMessage("Sync", "Mount sync to target RA '$0' DEC '$1' failed", ra, dec);
+            return false;
+        }
+        #endregion
+
+        #region Low-level commands
+        internal bool gotoTargetPosition(MechanicalPoint p)
+        {
+            if (!isSimulation())
+            {
+                if (!setTargetMechanicalPosition(p))
+                {
+                    if (0 < sendCmd(":MS#"))
+                    {
+                        String buf = "";
+                        if (0 < getReply(ref buf, 1))
+                            return buf[0] != '0'; // 0 is valid for :MS
+                    }
+                    else return true;
+                }
+                else return true;
+            }
+            else return !Sync(p.RAsky, p.DECsky);
+
+            return false;
+        }
+
+        internal bool getCurrentMechanicalPosition(ref MechanicalPoint p)
+        {
+            String b = "";
+            MechanicalPoint result = p;
+
+            // Always read DEC first as it gives the side of pier the scope is on, and has an impact on RA
+
+            if (isSimulation())
+                b = simEQ500X.MechanicalDECStr;
+            else if (getCommandString(ref b, ":GD#") < 0)
+                goto radec_error;
+
+            if (result.parseStringDEC(b))
+                goto radec_error;
+
+            LogMessage("getCurrentMechanicalPosition", "Mount mechanical DEC reads '$0' as $1.", b, result.DECm);
+
+            if (isSimulation())
+                b = simEQ500X.MechanicalRAStr;
+            else if (getCommandString(ref b, ":GR#") < 0)
+                goto radec_error;
+
+            if (result.parseStringRA(b))
+                goto radec_error;
+
+            LogMessage("getCurrentMechanicalPosition", "Mount mechanical RA reads '$0' as $1.", b, result.RAm);
+
+            p = result;
+            return false;
+
+        radec_error:
+            return true;
+        }
+
+        private bool setTargetMechanicalPosition(MechanicalPoint p)
+        {
+            if (!isSimulation())
+            {
+                String bufRA = "", bufDEC = "";
+
+                // Write RA/DEC in placeholders
+                String CmdString = String.Format(":Sr$0#:Sd$1#", p.toStringRA(ref bufRA), p.toStringDEC(ref bufDEC));
+                LogMessage("setTargetMechanicalPosition", "Target RA '$0' DEC '$0' converted to '$1'", p.RAm, p.DECm, CmdString);
+
+                String buf = "";
+
+                if (0 < sendCmd(CmdString))
+                    if (0 < getReply(ref buf, 2))
+                        if (buf[0] == '1' && buf[1] == '1')
+                            return false;
+                        else LogMessage("setTargetMechanicalPosition", "Failed '%s', mount replied %c%c", CmdString, buf[0], buf[1]);
+                    else LogMessage("setTargetMechanicalPosition", "Failed getting 2-byte reply to '%s'", CmdString);
+                else LogMessage("setTargetMechanicalPosition", "Failed '%s'", CmdString);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        internal int sendCmd(String data)
+        {
+            LogMessage("SendCmd", "<$0>", data);
+            if (!isSimulation())
+            {
+                try
+                {
+                    m_Port.Transmit(data);
+                    return data.Length;
+                }
+                catch (Exception)
+                {
+                    return -1;
+                }
+            }
+            return 0;
+        }
+
+        internal int getReply(ref String data, int len)
+        {
+            if (!isSimulation())
+            {
+                data = m_Port.ReceiveCounted(len);
+                LogMessage("getReply", "<$0>", data);
+            }
+            return 0;
+        }
+
+        private int getCommandString(ref String data, String cmd)
+        {
+            LogMessage("getCommandString", "CMD <$0>", cmd);
+
+            /* Add mutex */
+            //std::unique_lock<std::mutex> guard(lx200CommsLock);
+
+            try
+            {
+                m_Port.Transmit(cmd);
+                data = m_Port.ReceiveTerminated("#");
+            }
+            catch (Exception)
+            {
+                return -1;
+            }
+
+            Match m = Regex.Match(data, @"(.*)#.*");
+            if (m.Success)
+                data = m.Groups[1].Value;
+
+            LogMessage("getCommandString", "RES <$0>", data);
+
+            return 0;
+        }
+
+        private bool isSimulation()
+        {
+            return isSimulated;
         }
         #endregion
     }
