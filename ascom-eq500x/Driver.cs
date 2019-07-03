@@ -99,22 +99,29 @@ namespace ASCOM.EQ500X
         internal static TraceLogger tl;
         private bool isSimulated;
         private Serial m_Port;
-        private MechanicalPoint targetMechPosition;
-        private double targetRA;
-        private double targetDEC;
+        //private double targetRA;
+        //private double targetDEC;
         //private double currentRA;
         //private double currentDEC;
-        private MechanicalPoint currentMechPosition;
+        private MechanicalPoint currentMechPosition = new MechanicalPoint();
+        private MechanicalPoint targetMechPosition = new MechanicalPoint();
         private readonly string MechanicalPoint_DEC_FormatR = "+DD:MM:SS";
         private readonly string MechanicalPoint_DEC_FormatW = "+DDD:MM:SS";
         private readonly string MechanicalPoint_RA_Format = "HH:MM:SS";
 
         private struct simEQ500X
         {
-            internal static String MechanicalDECStr;
-            internal static String MechanicalRAStr;
-            internal static object MechanicalRA;
-            internal static object MechanicalDEC;
+            internal static String MechanicalDECStr = "+00:00:00";
+            internal static String MechanicalRAStr = "00°00'00";
+            internal static double MechanicalRA = 0;
+            internal static double MechanicalDEC = 0;
+        };
+
+        private struct Location
+        {
+            internal static double elevation;
+            internal static double latitude;
+            internal static double longitude;
         };
 
         /// <summary>
@@ -397,8 +404,8 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("AlignmentMode Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("AlignmentMode", false);
+                tl.LogMessage("AlignmentMode Get", "German Equatorial Mount");
+                return AlignmentModes.algGermanPolar;
             }
         }
 
@@ -595,8 +602,8 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSync", "Get - " + false.ToString());
-                return false;
+                tl.LogMessage("CanSync", "Get - True");
+                return true;
             }
         }
 
@@ -622,7 +629,11 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                double declination = 0.0;
+                if (!connectedState)
+                    throw new ASCOM.NotConnectedException("Declination");
+                if (getCurrentMechanicalPosition(ref currentMechPosition))
+                    throw new ASCOM.ValueNotSetException("Declination");
+                double declination = currentMechPosition.DECsky;
                 tl.LogMessage("Declination", "Get - " + utilities.DegreesToDMS(declination, ":", ":"));
                 return declination;
             }
@@ -747,7 +758,11 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                double rightAscension = 0.0;
+                if (!connectedState)
+                    throw new ASCOM.NotConnectedException("RightAscension");
+                if (getCurrentMechanicalPosition(ref currentMechPosition))
+                    throw new ASCOM.ValueNotSetException("Declination");
+                double rightAscension = currentMechPosition.RAsky;
                 tl.LogMessage("RightAscension", "Get - " + utilities.HoursToHMS(rightAscension));
                 return rightAscension;
             }
@@ -778,11 +793,25 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("SideOfPier Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SideOfPier", false);
+                if (!connectedState)
+                    throw new ASCOM.NotConnectedException("SideOfPier");
+                switch (currentMechPosition.PointingState)
+                {
+                    case MechanicalPoint.PointingStates.POINTING_NORMAL:
+                        tl.LogMessage("SideOfPier Get", "Pointing Normal - West");
+                        return PierSide.pierWest;
+                    case MechanicalPoint.PointingStates.POINTING_BEYOND_POLE:
+                        tl.LogMessage("SideOfPier Get", "Pointing Beyond Pole - East");
+                        return PierSide.pierWest;
+                    default:
+                        tl.LogMessage("SideOfPier Get", "Pointing Unknown");
+                        return PierSide.pierUnknown;
+                }
             }
             set
             {
+                if (!connectedState)
+                    throw new ASCOM.NotConnectedException("SideOfPier");
                 tl.LogMessage("SideOfPier Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("SideOfPier", true);
             }
@@ -818,13 +847,17 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("SiteElevation Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SiteElevation", false);
+                if (!Connected)
+                    throw new ASCOM.NotConnectedException("SiteElevation");
+                tl.LogMessage("SiteElevation Get", String.Format("Elevation $0", Location.elevation));
+                return Location.elevation;
             }
             set
             {
-                tl.LogMessage("SiteElevation Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SiteElevation", true);
+                if (!Connected)
+                    throw new ASCOM.NotConnectedException("SiteElevation");
+                tl.LogMessage("SiteElevation Set", String.Format("Set Elevation $0", value));
+                Location.elevation = value;
             }
         }
 
@@ -832,13 +865,17 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("SiteLatitude Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SiteLatitude", false);
+                if (!Connected)
+                    throw new ASCOM.NotConnectedException("SiteLatitude");
+                tl.LogMessage("SiteElevation Get", String.Format("Elevation $0", Location.latitude));
+                return Location.latitude;
             }
             set
             {
-                tl.LogMessage("SiteLatitude Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SiteLatitude", true);
+                if (!Connected)
+                    throw new ASCOM.NotConnectedException("SiteLatitude");
+                tl.LogMessage("SiteLatitude Set", String.Format("Latitude $0", Location.latitude));
+                Location.latitude = value;
             }
         }
 
@@ -846,13 +883,25 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("SiteLongitude Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SiteLongitude", false);
+                if (!Connected)
+                    throw new ASCOM.NotConnectedException("SiteLongitude");
+                tl.LogMessage("SiteLongitude Get", String.Format("Elevation $0", Location.longitude));
+                return Location.longitude;
             }
             set
             {
-                tl.LogMessage("SiteLongitude Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SiteLongitude", true);
+                if (!Connected)
+                    throw new ASCOM.NotConnectedException("SiteLongitude");
+
+                tl.LogMessage("SiteLongitude Set", String.Format("Longitude $0", value));
+                Location.longitude = value;
+
+                if (getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
+                {
+                    double LST = isSimulated ? 6 : SiderealTime;
+                    Sync(LST - 6, currentMechPosition.DECsky);
+                    tl.LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST $0", utilities.HoursToHMS(LST)));
+                }
             }
         }
 
@@ -923,8 +972,9 @@ namespace ASCOM.EQ500X
 
         public void SyncToCoordinates(double RightAscension, double Declination)
         {
-            tl.LogMessage("SyncToCoordinates", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SyncToCoordinates");
+            tl.LogMessage("SyncToCoordinates", String.Format("Set RA:$0 DEC:$1", RightAscension, Declination));
+            if (!Sync(RightAscension, Declination))
+                throw new ASCOM.DriverException("SyncToCoordinates");
         }
 
         public void SyncToTarget()
@@ -1171,8 +1221,8 @@ namespace ASCOM.EQ500X
         #region Mount functionalities
         private bool Sync(double ra, double dec)
         {
-            targetMechPosition.RAsky = targetRA = ra;
-            targetMechPosition.DECsky = targetDEC = dec;
+            targetMechPosition.RAsky = ra;
+            targetMechPosition.DECsky = dec;
 
             if (!setTargetMechanicalPosition(targetMechPosition))
             {
@@ -1187,7 +1237,7 @@ namespace ASCOM.EQ500X
                 }
                 else
                 {
-                    targetMechPosition.toStringRA(ref  simEQ500X.MechanicalRAStr);
+                    targetMechPosition.toStringRA(ref simEQ500X.MechanicalRAStr);
                     targetMechPosition.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
                     simEQ500X.MechanicalRA = targetMechPosition.RAm;
                     simEQ500X.MechanicalDEC = targetMechPosition.DECm;

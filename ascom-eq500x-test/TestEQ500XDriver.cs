@@ -40,26 +40,6 @@ namespace ascom_eq500x_test
             {
                 Assert.AreEqual(0, device.SupportedActions.Count);
 
-                /* Location */
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SiteElevation);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SiteElevation = 0);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SiteLatitude);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SiteLatitude = 0);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SiteLongitude);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SiteLongitude = 0);
-                //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.UTCDate);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.UTCDate = DateTime.UtcNow);
-
-                /* Coordinates */
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.AlignmentMode);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Altitude);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Azimuth);
-                //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Declination);
-                //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.RightAscension);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SideOfPier);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SideOfPier = 0);
-                Assert.IsFalse(device.CanSetPierSide);
-
                 /* Moving */
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, 0));
 
@@ -118,12 +98,6 @@ namespace ascom_eq500x_test
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.GuideRateRightAscension = 0);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.IsPulseGuiding);
 
-                /* Syncing */
-                Assert.IsFalse(device.CanSync);
-                Assert.IsFalse(device.CanSyncAltAz);
-                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SyncToAltAz(0, 0));
-                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SyncToCoordinates(0, 0));
-
                 /* Optical */
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.ApertureArea);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.ApertureDiameter);
@@ -131,6 +105,101 @@ namespace ascom_eq500x_test
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.DoesRefraction);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.DoesRefraction = false);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.FocalLength);
+            }
+        }
+
+        [TestMethod]
+        public void TestLocation()
+        {
+            /* Location */
+
+            Assert.IsFalse(device.Connected);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteElevation);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteElevation = 0);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteLatitude);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteLatitude = 0);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteLongitude);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteLongitude = 0);
+            Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.UTCDate = DateTime.UtcNow);
+
+            device.Connected = true;
+            Assert.AreEqual(0, device.SiteElevation);
+            Assert.AreEqual(0, device.SiteLatitude);
+            Assert.AreEqual(0, device.SiteLongitude);
+            Assert.AreEqual(DateTime.UtcNow.ToLongTimeString(), device.UTCDate.ToLongTimeString());
+
+            for (double h = -1000; h < 4000; h += 10)
+            {
+                device.SiteElevation = h;
+                for (double lat = -90; lat <= 90; lat += 1)
+                {
+                    device.SiteLatitude = lat;
+                    Assert.AreEqual(h, device.SiteElevation);
+                    Assert.AreEqual(lat, device.SiteLatitude);
+                    Assert.AreEqual(0, device.SiteLongitude);
+                }
+            }
+
+            Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.UTCDate = DateTime.UtcNow);
+        }
+
+        [TestMethod]
+        public void TestLSTSync()
+        {
+            Assert.IsFalse(device.Connected);
+            device.Connected = true;
+
+            // Assign a longitude that makes the RA of the scope point east - default position is 90° east
+            device.SiteLongitude = 6 * 15;
+            Assert.AreEqual(+0.0, device.RightAscension);
+            Assert.AreEqual(+90.0, device.Declination);
+
+            // Assign a new longitude
+            device.SiteLongitude = 5 * 15;
+            Assert.AreEqual(23.0, device.RightAscension);
+            Assert.AreEqual(+90.0, device.Declination);
+
+            // Assign a new longitude - but this time the mount is not considered "parked" east/pole and does not sync
+            device.SiteLongitude = 7 * 15;
+            Assert.AreEqual(23.0, device.RightAscension); // Expected 1h - not possible to assign longitude without restarting the mount
+            Assert.AreEqual(+90.0, device.Declination);
+        }
+
+        [TestMethod]
+        public void TestCoordinates()
+        {
+            /* Coordinates */
+            Assert.AreEqual(ASCOM.DeviceInterface.AlignmentModes.algGermanPolar, device.AlignmentMode);
+
+            Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Altitude);
+            Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Azimuth);
+
+            Assert.IsFalse(device.Connected);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.Declination);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.RightAscension);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SideOfPier);
+            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SideOfPier = 0);
+            Assert.IsFalse(device.CanSetPierSide);
+
+            device.Connected = true;
+            Assert.AreEqual(90, device.Declination);
+            Assert.AreEqual(0, device.RightAscension);
+        }
+
+        [TestMethod]
+        public void TestSyncing()
+        {
+            Assert.IsTrue(device.CanSync);
+            Assert.IsFalse(device.CanSyncAltAz);
+            Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SyncToAltAz(0, 0));
+            for (int ra = 0; ra < 24 * 60 * 60; ra++)
+            {
+                for (int dec = -89 * 60 * 60; dec < 89 * 60 * 60; dec++)
+                {
+                    device.SyncToCoordinates(ra, dec);
+                    Assert.AreEqual(ra, device.RightAscension);
+                    Assert.AreEqual(dec, device.Declination);
+                }
             }
         }
 

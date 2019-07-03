@@ -139,7 +139,7 @@ namespace ASCOM.EQ500X
             // MM are minutes, SS are seconds in [00:00,59:59].
             // The whole reply is in [-255:59:59,+255:59:59].
 
-            Match dms = Regex.Match(s, @"([+\-0-9:;<=>\?@A-I]{3}).(\d{2}):(\d{2})");
+            Match dms = Regex.Match(s, @"([+\-][\d:;<=>\?@A-I]\d)[^\d](\d{2})[^\d](\d{2})");
             if (!dms.Success)
                 return true;
 
@@ -187,7 +187,7 @@ namespace ASCOM.EQ500X
             // HH, MM and SS are respectively hours, minutes and seconds in [00:00:00,23:59:59].
             // FIXME: Sanitize.
 
-            Match m = Regex.Match(s, @"(\d{2}):(\d{2}):(\d{2})");
+            Match m = Regex.Match(s, @"(\d{2})[^\d](\d{2})[^\d](\d{2})");
             if (m.Success)
             {
                 int hours = int.Parse(m.Groups[1].Value);
