@@ -109,13 +109,16 @@ namespace ASCOM.EQ500X
         private readonly string MechanicalPoint_DEC_FormatW = "+DDD:MM:SS";
         private readonly string MechanicalPoint_RA_Format = "HH:MM:SS";
 
-        private struct simEQ500X
+        private class SimEQ500X
         {
-            internal static String MechanicalDECStr = "+00:00:00";
-            internal static String MechanicalRAStr = "00°00'00";
-            internal static double MechanicalRA = 0;
-            internal static double MechanicalDEC = 0;
+            internal String MechanicalDECStr = "+00:00:00";
+            internal String MechanicalRAStr = "00°00'00";
+            internal double MechanicalRA = 0;
+            internal double MechanicalDEC = 0;
+            internal double LST = 6;
         };
+
+        private SimEQ500X simEQ500X = new SimEQ500X();
 
         private struct Location
         {
@@ -138,7 +141,6 @@ namespace ASCOM.EQ500X
             connectedState = false; // Initialise connected to false
             utilities = new Util(); //Initialise util object
             astroUtilities = new AstroUtils(); // Initialise astro utilities object
-            //TODO: Implement your additional construction here
 
             tl.LogMessage("Telescope", "Completed initialisation");
         }
@@ -226,7 +228,18 @@ namespace ASCOM.EQ500X
             // then all communication calls this function
             // you need something to ensure that only one command is in progress at a time
 
-            throw new ASCOM.MethodNotImplementedException("CommandString");
+            if (isSimulated)
+            {
+                if ("getCurrentMechanicalPosition" == command)
+                {
+                    String ra = "", dec = "";
+                    currentMechPosition.toStringRA(ref ra);
+                    currentMechPosition.toStringDEC(ref dec);
+                    return string.Format("{0} {1}", ra, dec);
+                }
+            }
+
+            throw new ASCOM.MethodNotImplementedException(String.Format("CommandString - $0", command));
         }
 
         public void Dispose()
@@ -283,29 +296,18 @@ namespace ASCOM.EQ500X
 
                     if (m_Port.Connected)
                     {
-                        m_Port.Transmit(":GR#");
-                        String ra = m_Port.Receive();
-                        m_Port.Transmit(":GD#");
-                        String de = m_Port.Receive();
-
-                        if (9 == ra.Length && 10 == de.Length)
+                        try
                         {
-                            string[] ras = ra.TrimEnd('#').Split(':');
-                            string[] des = de.TrimEnd('#').Split(':');
+                            if (!ReadScopeStatus())
+                                throw new FormatException();
 
-                            try
-                            {
-                                m_RightAscension = double.Parse(ras[0]) + double.Parse(ras[1]) / 60.0 + double.Parse(ras[2]) / 3600.0;
-                                m_Declination = double.Parse(des[0]) + double.Parse(des[1]) / 60.0 + double.Parse(des[2]) / 3600.0;
-
-                                connectedState = true;
-                            }
-                            catch (FormatException)
-                            {
-                                LogMessage("Connected Set", "Port {0} open, but device failed handshake", comPort);
-                                m_Port.Connected = false;
-                                m_Port.Dispose();
-                            }
+                            connectedState = true;
+                        }
+                        catch (FormatException)
+                        {
+                            LogMessage("Connected Set", "Port {0} open, but device failed handshake", comPort);
+                            m_Port.Connected = false;
+                            m_Port.Dispose();
                         }
                     }
                 }
@@ -896,9 +898,12 @@ namespace ASCOM.EQ500X
                 tl.LogMessage("SiteLongitude Set", String.Format("Longitude $0", value));
                 Location.longitude = value;
 
-                if (getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
+                if (isSimulated)
+                    simEQ500X.LST = 0.0 + value / 15.0;
+
+                if (!getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
                 {
-                    double LST = isSimulated ? 6 : SiderealTime;
+                    double LST = isSimulated ? simEQ500X.LST : SiderealTime;
                     Sync(LST - 6, currentMechPosition.DECsky);
                     tl.LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST $0", utilities.HoursToHMS(LST)));
                 }
@@ -1219,6 +1224,18 @@ namespace ASCOM.EQ500X
         #endregion
 
         #region Mount functionalities
+
+        private bool ReadScopeStatus()
+        {
+            if (getCurrentMechanicalPosition(ref currentMechPosition))
+            {
+                LogMessage("ReadScopeStatus", "Reading scope status failed");
+                return false;
+            }
+
+            return true;
+        }
+
         private bool Sync(double ra, double dec)
         {
             targetMechPosition.RAsky = ra;

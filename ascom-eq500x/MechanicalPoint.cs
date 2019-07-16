@@ -139,34 +139,44 @@ namespace ASCOM.EQ500X
             // MM are minutes, SS are seconds in [00:00,59:59].
             // The whole reply is in [-255:59:59,+255:59:59].
 
-            Match dms = Regex.Match(s, @"([+\-][\d:;<=>\?@A-I]\d)[^\d](\d{2})[^\d](\d{2})");
+            // For flexibility, we allow parsing of +###:##:## instead of the spec +##:##:##
+
+            Match dms = Regex.Match(s, @"([+\-]([\d:;<=>\?@A-I])\d{1,2})[^\d](\d{2})[^\d](\d{2})");
             if (!dms.Success)
                 return true;
 
             int degrees = 0;
-            switch (dms.Groups[1].Value[1])
+            if (4 == dms.Groups[1].Value.Length)
             {
-                case ':': degrees += 100; break;
-                case ';': degrees += 110; break;
-                case '<': degrees += 120; break;
-                case '=': degrees += 130; break;
-                case '>': degrees += 140; break;
-                case '?': degrees += 150; break;
-                case '@': degrees += 160; break;
-                case 'A': degrees += 170; break;
-                case 'B': degrees += 180; break;
-                case 'C': degrees += 190; break;
-                case 'D': degrees += 200; break;
-                case 'E': degrees += 210; break;
-                case 'F': degrees += 220; break;
-                case 'G': degrees += 230; break;
-                case 'H': degrees += 240; break;
-                case 'I': degrees += 250; break;
-                default: degrees += 10 * int.Parse(dms.Groups[1].Value[1].ToString()); break;
+                // Sign is processed when DMS is consolidated
+                degrees += int.Parse(dms.Groups[1].Value.Substring(1,3));
             }
-            degrees += int.Parse(dms.Groups[1].Value[2].ToString());
-            int minutes = int.Parse(dms.Groups[2].Value);
-            int seconds = int.Parse(dms.Groups[3].Value);
+            else
+            {
+                switch (dms.Groups[1].Value[1])
+                {
+                    case ':': degrees += 100; break;
+                    case ';': degrees += 110; break;
+                    case '<': degrees += 120; break;
+                    case '=': degrees += 130; break;
+                    case '>': degrees += 140; break;
+                    case '?': degrees += 150; break;
+                    case '@': degrees += 160; break;
+                    case 'A': degrees += 170; break;
+                    case 'B': degrees += 180; break;
+                    case 'C': degrees += 190; break;
+                    case 'D': degrees += 200; break;
+                    case 'E': degrees += 210; break;
+                    case 'F': degrees += 220; break;
+                    case 'G': degrees += 230; break;
+                    case 'H': degrees += 240; break;
+                    case 'I': degrees += 250; break;
+                    default: degrees += 10 * int.Parse(dms.Groups[1].Value[1].ToString()); break;
+                }
+                degrees += int.Parse(dms.Groups[1].Value[2].ToString());
+            }
+            int minutes = int.Parse(dms.Groups[3].Value);
+            int seconds = int.Parse(dms.Groups[4].Value);
 
             _DECm = (dms.Groups[1].Value[0] == '-' ? -1 : +1) * (degrees * 3600 + minutes * 60 + seconds);
 

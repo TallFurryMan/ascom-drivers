@@ -1,4 +1,5 @@
 ﻿using System;
+using ASCOM.EQ500X;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ascom_eq500x_test
@@ -7,6 +8,16 @@ namespace ascom_eq500x_test
     public class TestEQ500XDriver
     {
         public ASCOM.DriverAccess.Telescope device;
+
+        public bool getCurrentMechanicalPosition(ref MechanicalPoint p)
+        {
+            Assert.IsTrue(device.Connected);
+            String result = device.CommandString("getCurrentMechanicalPosition", false);
+            String[] radec = result.Split(new char[] { ' ' });
+            Assert.IsFalse(p.parseStringRA(radec[0]));
+            Assert.IsFalse(p.parseStringDEC(radec[1]));
+            return false;
+        }
 
         [TestInitialize]
         public void setUp()
@@ -189,18 +200,80 @@ namespace ascom_eq500x_test
         [TestMethod]
         public void TestSyncing()
         {
+            Assert.IsFalse(device.Connected);
+            device.Connected = true;
             Assert.IsTrue(device.CanSync);
             Assert.IsFalse(device.CanSyncAltAz);
             Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SyncToAltAz(0, 0));
+            /*
             for (int ra = 0; ra < 24 * 60 * 60; ra++)
             {
                 for (int dec = -89 * 60 * 60; dec < 89 * 60 * 60; dec++)
                 {
-                    device.SyncToCoordinates(ra, dec);
-                    Assert.AreEqual(ra, device.RightAscension);
-                    Assert.AreEqual(dec, device.Declination);
+                    double RA = ra / 3600.0;
+                    double DEC = dec / 3600.0;
+                    device.SyncToCoordinates(RA, DEC);
+                    Assert.AreEqual(RA, device.RightAscension);
+                    Assert.AreEqual(DEC, device.Declination);
                 }
             }
+            */
+
+            MechanicalPoint p = new MechanicalPoint();
+            Assert.IsFalse(getCurrentMechanicalPosition(ref p));
+            Assert.AreEqual(0.0, p.RAm);
+            Assert.AreEqual(0.0, p.DECm);
+            Assert.AreEqual(0.0, p.RAsky);
+            Assert.AreEqual(90.0, p.DECsky);
+            Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
+
+            device.SyncToCoordinates(0, 0);
+            Assert.IsFalse(getCurrentMechanicalPosition(ref p));
+            Assert.AreEqual(0.0, p.RAm);
+            Assert.AreEqual(90.0, p.DECm);
+            Assert.AreEqual(0.0, p.RAsky);
+            Assert.AreEqual(0.0, p.DECsky);
+            Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
+
+            device.SyncToCoordinates(10, 0);
+            Assert.IsFalse(getCurrentMechanicalPosition(ref p));
+            Assert.AreEqual(10.0, p.RAm);
+            Assert.AreEqual(90.0, p.DECm);
+            Assert.AreEqual(10.0, p.RAsky);
+            Assert.AreEqual(0.0, p.DECsky);
+            Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
+
+            device.SyncToCoordinates(14, 0);
+            Assert.IsFalse(getCurrentMechanicalPosition(ref p));
+            Assert.AreEqual(14.0, p.RAm);
+            Assert.AreEqual(90.0, p.DECm);
+            Assert.AreEqual(14.0, p.RAsky);
+            Assert.AreEqual(0.0, p.DECsky);
+            Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
+
+            device.SyncToCoordinates(0, 10);
+            Assert.IsFalse(getCurrentMechanicalPosition(ref p));
+            Assert.AreEqual(0.0, p.RAm);
+            Assert.AreEqual(80.0, p.DECm);
+            Assert.AreEqual(0.0, p.RAsky);
+            Assert.AreEqual(10.0, p.DECsky);
+            Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
+
+            device.SyncToCoordinates(0, -10);
+            Assert.IsFalse(getCurrentMechanicalPosition(ref p));
+            Assert.AreEqual(0.0, p.RAm);
+            Assert.AreEqual(100.0, p.DECm);
+            Assert.AreEqual(0.0, p.RAsky);
+            Assert.AreEqual(-10.0, p.DECsky);
+            Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
+
+            device.SyncToCoordinates(14, -10);
+            Assert.IsFalse(getCurrentMechanicalPosition(ref p));
+            Assert.AreEqual(14.0, p.RAm);
+            Assert.AreEqual(100.0, p.DECm);
+            Assert.AreEqual(14.0, p.RAsky);
+            Assert.AreEqual(-10.0, p.DECsky);
+            Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
         }
 
         [TestMethod]
