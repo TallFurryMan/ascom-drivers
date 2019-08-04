@@ -120,12 +120,14 @@ namespace ASCOM.EQ500X
 
         private SimEQ500X simEQ500X = new SimEQ500X();
 
-        private struct Location
+        private class Location
         {
-            internal static double elevation;
-            internal static double latitude;
-            internal static double longitude;
+            internal double elevation = 0;
+            internal double latitude = 0;
+            internal double longitude = 0;
         };
+
+        private Location location = new Location();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EQ500X"/> class.
@@ -245,9 +247,12 @@ namespace ASCOM.EQ500X
         public void Dispose()
         {
             // Clean up the tracelogger and util objects
-            tl.Enabled = false;
-            tl.Dispose();
-            tl = null;
+            if (null != tl)
+            {
+                tl.Enabled = false;
+                tl.Dispose();
+                tl = null;
+            }
             utilities.Dispose();
             utilities = null;
             astroUtilities.Dispose();
@@ -851,15 +856,15 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteElevation");
-                tl.LogMessage("SiteElevation Get", String.Format("Elevation $0", Location.elevation));
-                return Location.elevation;
+                tl.LogMessage("SiteElevation Get", String.Format("Elevation $0", location.elevation));
+                return location.elevation;
             }
             set
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteElevation");
                 tl.LogMessage("SiteElevation Set", String.Format("Set Elevation $0", value));
-                Location.elevation = value;
+                location.elevation = value;
             }
         }
 
@@ -869,15 +874,15 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLatitude");
-                tl.LogMessage("SiteElevation Get", String.Format("Elevation $0", Location.latitude));
-                return Location.latitude;
+                tl.LogMessage("SiteElevation Get", String.Format("Elevation $0", location.latitude));
+                return location.latitude;
             }
             set
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLatitude");
-                tl.LogMessage("SiteLatitude Set", String.Format("Latitude $0", Location.latitude));
-                Location.latitude = value;
+                tl.LogMessage("SiteLatitude Set", String.Format("Latitude $0", location.latitude));
+                location.latitude = value;
             }
         }
 
@@ -887,8 +892,8 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLongitude");
-                tl.LogMessage("SiteLongitude Get", String.Format("Elevation $0", Location.longitude));
-                return Location.longitude;
+                tl.LogMessage("SiteLongitude Get", String.Format("Elevation $0", location.longitude));
+                return location.longitude;
             }
             set
             {
@@ -896,7 +901,7 @@ namespace ASCOM.EQ500X
                     throw new ASCOM.NotConnectedException("SiteLongitude");
 
                 tl.LogMessage("SiteLongitude Set", String.Format("Longitude $0", value));
-                Location.longitude = value;
+                location.longitude = value;
 
                 if (isSimulated)
                     simEQ500X.LST = 0.0 + value / 15.0;
