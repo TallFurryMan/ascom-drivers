@@ -53,6 +53,10 @@ namespace ascom_eq500x_test
 
                 /* Moving */
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, 0));
+                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, 0));
+                Assert.IsFalse(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary));
+                Assert.IsFalse(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary));
+                Assert.IsFalse(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisTertiary));
 
                 /* Tracking */
                 Assert.IsFalse(device.CanSetDeclinationRate);
