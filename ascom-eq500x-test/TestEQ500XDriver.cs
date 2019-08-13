@@ -322,7 +322,129 @@ namespace ascom_eq500x_test
         public void TestReadScopeStatus()
         {
             device.Connected = true;
+            Assert.IsTrue(device.Connected);
+            Assert.IsTrue(device.Tracking);
+            Assert.AreEqual(0, device.RightAscension);
+            Assert.AreEqual(90, device.Declination);
+            Assert.AreEqual(1000,int.Parse(device.CommandString("getReadScopeStatusInterval", true)));
+        }
 
+        [TestMethod]
+        public void Test_Goto_NoMovement()
+        {
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            device.SlewToCoordinates(device.RightAscension,device.Declination);
+            Assert.IsTrue(device.Slewing);
+            for (int i = 0; i < 10; i++)
+            {
+                System.Threading.Thread.Sleep(200);
+                if (device.Tracking) break;
+                Assert.IsTrue(device.Slewing);
+            }
+            Assert.IsTrue(device.Tracking);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+        }
+
+        [TestMethod]
+        public void Test_Goto_AbortMovement()
+        {
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+            device.SlewToCoordinates(device.RightAscension-1, device.Declination-10);
+            Assert.IsTrue(device.Slewing);
+            for (int i = 0; i < 4; i++)
+            {
+                int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
+                int seconds = statusInterval / 1000;
+                System.Threading.Thread.Sleep(seconds * 1000 + (statusInterval - seconds * 1000));
+                Assert.IsTrue(device.Slewing);
+            }
+            Assert.IsTrue(device.Slewing);
+            device.AbortSlew();
+            Assert.IsTrue(device.Tracking);
+            Assert.AreEqual(1000, int.Parse(device.CommandString("getReadScopeStatusInterval", true)));
+        }
+
+        [TestMethod]
+        public void Test_Goto_SouthMovement()
+        {
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            device.SlewToCoordinates(device.RightAscension, device.Declination - 10);
+            Assert.IsTrue(device.Slewing);
+            for (int i = 0; i < 150; i++)
+            {
+                int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
+                int seconds = statusInterval / 1000;
+                System.Threading.Thread.Sleep(seconds * 1000 + (statusInterval - seconds * 1000));
+                if (device.Tracking) break;
+                Assert.IsTrue(device.Slewing);
+            }
+            Assert.IsTrue(device.Tracking);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+        }
+
+        [TestMethod]
+        public void Test_Goto_NorthMovement()
+        {
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            device.SlewToCoordinates(device.RightAscension, device.Declination + 10);
+            Assert.IsTrue(device.Slewing);
+            for (int i = 0; i < 150; i++)
+            {
+                int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
+                int seconds = statusInterval / 1000;
+                System.Threading.Thread.Sleep(seconds * 1000 + (statusInterval - seconds * 1000));
+                if (device.Tracking) break;
+                Assert.IsTrue(device.Slewing);
+            }
+            Assert.IsTrue(device.Tracking);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+        }
+
+        [TestMethod]
+        public void Test_Goto_EastMovement()
+        {
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            device.SlewToCoordinates(device.RightAscension + 1, device.Declination);
+            Assert.IsTrue(device.Slewing);
+            for (int i = 0; i < 150; i++)
+            {
+                int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
+                int seconds = statusInterval / 1000;
+                System.Threading.Thread.Sleep(seconds * 1000 + (statusInterval - seconds * 1000));
+                if (device.Tracking) break;
+                Assert.IsTrue(device.Slewing);
+            }
+            Assert.IsTrue(device.Tracking);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierEast, device.SideOfPier);
+        }
+
+        [TestMethod]
+        public void Test_Goto_WestMovement()
+        {
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            device.SlewToCoordinates(device.RightAscension - 1, device.Declination);
+            Assert.IsTrue(device.Slewing);
+            for (int i = 0; i < 150; i++)
+            {
+                int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
+                int seconds = statusInterval / 1000;
+                System.Threading.Thread.Sleep(seconds * 1000 + (statusInterval - seconds * 1000));
+                if (device.Tracking) break;
+                Assert.IsTrue(device.Slewing);
+            }
+            Assert.IsTrue(device.Tracking);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
         }
     }
 }

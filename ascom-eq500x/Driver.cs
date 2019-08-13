@@ -37,6 +37,8 @@ using System.Globalization;
 using System.Collections;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Collections.ObjectModel;
+using System.Timers;
 
 namespace ASCOM.EQ500X
 {
@@ -82,6 +84,7 @@ namespace ASCOM.EQ500X
         /// Private variable to hold the connected state
         /// </summary>
         private bool connectedState;
+        private System.Timers.Timer m_ReadScopeTimer;
 
         /// <summary>
         /// Private variable to hold an ASCOM Utilities object
@@ -116,6 +119,7 @@ namespace ASCOM.EQ500X
             internal double MechanicalRA = 0;
             internal double MechanicalDEC = 0;
             internal double LST = 6;
+            internal long last_sim = 0;
         };
 
         private SimEQ500X simEQ500X = new SimEQ500X();
@@ -136,15 +140,18 @@ namespace ASCOM.EQ500X
         public Telescope()
         {
             tl = new TraceLogger("", "EQ500X");
+
             ReadProfile(); // Read device configuration from the ASCOM Profile store
 
-            tl.LogMessage("Telescope", "Starting initialisation");
+            tl.Enabled = true;
+            LogMessage("Telescope", "Starting initialisation");
+            Debug.WriteLine($"Logging to {tl.LogFileName}");
 
             connectedState = false; // Initialise connected to false
             utilities = new Util(); //Initialise util object
             astroUtilities = new AstroUtils(); // Initialise astro utilities object
 
-            tl.LogMessage("Telescope", "Completed initialisation");
+            LogMessage("Telescope", "Completed initialisation");
         }
 
 
@@ -181,7 +188,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("SupportedActions Get", "Returning empty arraylist");
+                LogMessage("SupportedActions Get", "Returning empty arraylist");
                 return new ArrayList();
             }
         }
@@ -204,15 +211,15 @@ namespace ASCOM.EQ500X
 
         public bool CommandBool(string command, bool raw)
         {
-            switch (command)
-            {
-                case "isSimulated":
-                    return isSimulated;
-                case "Simulated":
-                    return isSimulated = raw;
-                default:
-                    break;
-            }
+            lock (internalLock) switch (command)
+                {
+                    case "isSimulated":
+                        return isSimulated;
+                    case "Simulated":
+                        return isSimulated = raw;
+                    default:
+                        break;
+                }
 
             CheckConnected("CommandBool");
 
@@ -230,18 +237,22 @@ namespace ASCOM.EQ500X
             // then all communication calls this function
             // you need something to ensure that only one command is in progress at a time
 
-            if (isSimulated)
-            {
-                if ("getCurrentMechanicalPosition" == command)
+            if (isSimulated) lock (internalLock)
                 {
-                    String ra = "", dec = "";
-                    currentMechPosition.toStringRA(ref ra);
-                    currentMechPosition.toStringDEC(ref dec);
-                    return string.Format("{0} {1}", ra, dec);
+                    if ("getCurrentMechanicalPosition" == command)
+                    {
+                        String ra = "", dec = "";
+                        currentMechPosition.toStringRA(ref ra);
+                        currentMechPosition.toStringDEC(ref dec);
+                        return string.Format("{0} {1}", ra, dec);
+                    }
+                    else if ("getReadScopeStatusInterval" == command)
+                    {
+                        return string.Format("{0}", PollMs);
+                    }
                 }
-            }
 
-            throw new ASCOM.MethodNotImplementedException(String.Format("CommandString - $0", command));
+            throw new ASCOM.MethodNotImplementedException(String.Format("CommandString - {0}", command));
         }
 
         public void Dispose()
@@ -268,58 +279,72 @@ namespace ASCOM.EQ500X
             }
             set
             {
-                tl.LogMessage("Connected", "Set {0}", value);
+                LogMessage("Connected", "Set {0}", value);
                 if (value == IsConnected)
                     return;
 
-                if (value)
-                {
-                    if (isSimulated)
+                if (value) lock (internalLock)
                     {
-                        LogMessage("Connected Set", "Connecting in simulation mode");
-                        connectedState = true;
-                        return;
-                    }
-
-                    LogMessage("Connected Set", "Connecting to port {0}", comPort);
-
-                    m_Port = new Serial();
-                    m_Port.PortName = comPort;
-                    m_Port.Speed = SerialSpeed.ps9600;
-                    m_Port.DataBits = 8;
-                    m_Port.Parity = SerialParity.None;
-                    m_Port.StopBits = SerialStopBits.One;
-                    m_Port.ReceiveTimeout = 5;
-                    m_Port.DTREnable = true;
-                    m_Port.Handshake = SerialHandshake.None;
-
-                    try
-                    {
-                        m_Port.Connected = true;
-                    }
-                    catch (IOException) { }
-
-                    if (m_Port.Connected)
-                    {
-                        try
+                        if (isSimulated)
                         {
+                            LogMessage("Connected Set", "Connecting in simulation mode");
+
                             if (!ReadScopeStatus())
                                 throw new FormatException();
 
                             connectedState = true;
+
+                            restartReadScopeStatusTimer();
+
+                            return;
                         }
-                        catch (FormatException)
+
+                        LogMessage("Connected Set", "Connecting to port {0}", comPort);
+
+                        m_Port = new Serial();
+                        m_Port.PortName = comPort;
+                        m_Port.Speed = SerialSpeed.ps9600;
+                        m_Port.DataBits = 8;
+                        m_Port.Parity = SerialParity.None;
+                        m_Port.StopBits = SerialStopBits.One;
+                        m_Port.ReceiveTimeout = 5;
+                        m_Port.DTREnable = true;
+                        m_Port.Handshake = SerialHandshake.None;
+
+                        try
                         {
-                            LogMessage("Connected Set", "Port {0} open, but device failed handshake", comPort);
-                            m_Port.Connected = false;
-                            m_Port.Dispose();
+                            m_Port.Connected = true;
+                        }
+                        catch (IOException) { }
+
+                        if (m_Port.Connected)
+                        {
+                            try
+                            {
+                                if (!ReadScopeStatus())
+                                    throw new FormatException();
+
+                                connectedState = true;
+
+                                restartReadScopeStatusTimer();
+                            }
+                            catch (FormatException)
+                            {
+                                LogMessage("Connected Set", "Port {0} open, but device failed handshake", comPort);
+                                m_Port.Connected = false;
+                                m_Port.Dispose();
+                            }
                         }
                     }
-                }
                 else
                 {
-                    connectedState = false;
                     LogMessage("Connected Set", "Disconnecting from port {0}", comPort);
+
+                    m_ReadScopeTimer.Stop();
+                    m_ReadScopeTimer.Dispose();
+                    m_ReadScopeTimer = null;
+
+                    connectedState = false;
 
                     if (null != m_Port)
                     {
@@ -340,7 +365,7 @@ namespace ASCOM.EQ500X
             }
             set
             {
-                tl.LogMessage("Simulation Set", "Not implemented");
+                LogMessage("Simulation Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("Simulated", true);
             }
         }
@@ -350,7 +375,7 @@ namespace ASCOM.EQ500X
             // TODO customise this device description
             get
             {
-                tl.LogMessage("Description Get", driverDescription);
+                LogMessage("Description Get", driverDescription);
                 return driverDescription;
             }
         }
@@ -362,7 +387,7 @@ namespace ASCOM.EQ500X
                 Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
                 // TODO customise this driver description
                 string driverInfo = "Information about the driver itself. Version: " + String.Format(CultureInfo.InvariantCulture, "{0}.{1}", version.Major, version.Minor);
-                tl.LogMessage("DriverInfo Get", driverInfo);
+                LogMessage("DriverInfo Get", driverInfo);
                 return driverInfo;
             }
         }
@@ -373,7 +398,7 @@ namespace ASCOM.EQ500X
             {
                 Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
                 string driverVersion = String.Format(CultureInfo.InvariantCulture, "{0}.{1}", version.Major, version.Minor);
-                tl.LogMessage("DriverVersion Get", driverVersion);
+                LogMessage("DriverVersion Get", driverVersion);
                 return driverVersion;
             }
         }
@@ -393,7 +418,7 @@ namespace ASCOM.EQ500X
             get
             {
                 string name = "Omegon EQ500X";
-                tl.LogMessage("Name Get", name);
+                LogMessage("Name Get", name);
                 return name;
             }
         }
@@ -403,15 +428,27 @@ namespace ASCOM.EQ500X
         #region ITelescope Implementation
         public void AbortSlew()
         {
-            tl.LogMessage("AbortSlew", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("AbortSlew");
+            lock (internalLock)
+            {
+                LogMessage("AbortSlew", $"Aborting slew called while {m_TrackState.ToString()}");
+                if (TrackState.SLEWING == m_TrackState)
+                {
+                    PollMs = 1000;
+                    m_TrackState = TrackState.TRACKING;
+                    // Abort movement
+                    sendCmd(":Q#");
+                    // Abort NS Guide
+                    // Abort WE Guide
+                    updateSlewRate(savedSlewRateIndex);
+                }
+            }
         }
 
         public AlignmentModes AlignmentMode
         {
             get
             {
-                tl.LogMessage("AlignmentMode Get", "German Equatorial Mount");
+                LogMessage("AlignmentMode Get", "German Equatorial Mount");
                 return AlignmentModes.algGermanPolar;
             }
         }
@@ -420,7 +457,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("Altitude", "Not implemented");
+                LogMessage("Altitude", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("Altitude", false);
             }
         }
@@ -429,7 +466,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("ApertureArea Get", "Not implemented");
+                LogMessage("ApertureArea Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("ApertureArea", false);
             }
         }
@@ -438,7 +475,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("ApertureDiameter Get", "Not implemented");
+                LogMessage("ApertureDiameter Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("ApertureDiameter", false);
             }
         }
@@ -447,7 +484,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("AtHome", "Get - " + false.ToString());
+                LogMessage("AtHome", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -456,14 +493,14 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("AtPark", "Get - " + false.ToString());
+                LogMessage("AtPark", "Get - " + false.ToString());
                 return false;
             }
         }
 
         public IAxisRates AxisRates(TelescopeAxes Axis)
         {
-            tl.LogMessage("AxisRates", "Get - " + Axis.ToString());
+            LogMessage("AxisRates", "Get - " + Axis.ToString());
             return new AxisRates(Axis);
         }
 
@@ -471,7 +508,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("Azimuth Get", "Not implemented");
+                LogMessage("Azimuth Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("Azimuth", false);
             }
         }
@@ -480,14 +517,14 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanFindHome", "Get - " + false.ToString());
+                LogMessage("CanFindHome", "Get - " + false.ToString());
                 return false;
             }
         }
 
         public bool CanMoveAxis(TelescopeAxes Axis)
         {
-            tl.LogMessage("CanMoveAxis", "Get - " + Axis.ToString());
+            LogMessage("CanMoveAxis", "Get - " + Axis.ToString());
             switch (Axis)
             {
                 case TelescopeAxes.axisPrimary: return false;
@@ -501,7 +538,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanPark", "Get - " + false.ToString());
+                LogMessage("CanPark", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -510,7 +547,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanPulseGuide", "Get - " + false.ToString());
+                LogMessage("CanPulseGuide", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -519,7 +556,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSetDeclinationRate", "Get - " + false.ToString());
+                LogMessage("CanSetDeclinationRate", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -528,7 +565,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSetGuideRates", "Get - " + false.ToString());
+                LogMessage("CanSetGuideRates", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -537,7 +574,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSetPark", "Get - " + false.ToString());
+                LogMessage("CanSetPark", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -546,7 +583,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSetPierSide", "Get - " + false.ToString());
+                LogMessage("CanSetPierSide", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -555,7 +592,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSetRightAscensionRate", "Get - " + false.ToString());
+                LogMessage("CanSetRightAscensionRate", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -564,7 +601,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSetTracking", "Get - " + false.ToString());
+                LogMessage("CanSetTracking", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -573,7 +610,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSlew", "Get - " + false.ToString());
+                LogMessage("CanSlew", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -582,7 +619,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSlewAltAz", "Get - " + false.ToString());
+                LogMessage("CanSlewAltAz", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -591,7 +628,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSlewAltAzAsync", "Get - " + false.ToString());
+                LogMessage("CanSlewAltAzAsync", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -600,7 +637,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSlewAsync", "Get - " + false.ToString());
+                LogMessage("CanSlewAsync", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -609,7 +646,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSync", "Get - True");
+                LogMessage("CanSync", "Get - True");
                 return true;
             }
         }
@@ -618,7 +655,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanSyncAltAz", "Get - " + false.ToString());
+                LogMessage("CanSyncAltAz", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -627,7 +664,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("CanUnpark", "Get - " + false.ToString());
+                LogMessage("CanUnpark", "Get - " + false.ToString());
                 return false;
             }
         }
@@ -636,13 +673,16 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                if (!connectedState)
-                    throw new ASCOM.NotConnectedException("Declination");
-                if (getCurrentMechanicalPosition(ref currentMechPosition))
-                    throw new ASCOM.ValueNotSetException("Declination");
-                double declination = currentMechPosition.DECsky;
-                tl.LogMessage("Declination", "Get - " + utilities.DegreesToDMS(declination, ":", ":"));
-                return declination;
+                lock (internalLock)
+                {
+                    if (!connectedState)
+                        throw new ASCOM.NotConnectedException("Declination");
+                    if (getCurrentMechanicalPosition(ref currentMechPosition))
+                        throw new ASCOM.ValueNotSetException("Declination");
+                    double declination = currentMechPosition.DECsky;
+                    LogMessage("Declination", "Get - " + utilities.DegreesToDMS(declination, ":", ":"));
+                    return declination;
+                }
             }
         }
 
@@ -651,19 +691,19 @@ namespace ASCOM.EQ500X
             get
             {
                 double declination = 0.0;
-                tl.LogMessage("DeclinationRate", "Get - " + declination.ToString());
+                LogMessage("DeclinationRate", "Get - " + declination.ToString());
                 return declination;
             }
             set
             {
-                tl.LogMessage("DeclinationRate Set", "Not implemented");
+                LogMessage("DeclinationRate Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("DeclinationRate", true);
             }
         }
 
         public PierSide DestinationSideOfPier(double RightAscension, double Declination)
         {
-            tl.LogMessage("DestinationSideOfPier Get", "Not implemented");
+            LogMessage("DestinationSideOfPier Get", "Not implemented");
             throw new ASCOM.PropertyNotImplementedException("DestinationSideOfPier", false);
         }
 
@@ -671,12 +711,12 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("DoesRefraction Get", "Not implemented");
+                LogMessage("DoesRefraction Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("DoesRefraction", false);
             }
             set
             {
-                tl.LogMessage("DoesRefraction Set", "Not implemented");
+                LogMessage("DoesRefraction Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("DoesRefraction", true);
             }
         }
@@ -686,14 +726,14 @@ namespace ASCOM.EQ500X
             get
             {
                 EquatorialCoordinateType equatorialSystem = EquatorialCoordinateType.equTopocentric;
-                tl.LogMessage("DeclinationRate", "Get - " + equatorialSystem.ToString());
+                LogMessage("DeclinationRate", "Get - " + equatorialSystem.ToString());
                 return equatorialSystem;
             }
         }
 
         public void FindHome()
         {
-            tl.LogMessage("FindHome", "Not implemented");
+            LogMessage("FindHome", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("FindHome");
         }
 
@@ -701,7 +741,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("FocalLength Get", "Not implemented");
+                LogMessage("FocalLength Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("FocalLength", false);
             }
         }
@@ -710,12 +750,12 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("GuideRateDeclination Get", "Not implemented");
+                LogMessage("GuideRateDeclination Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("GuideRateDeclination", false);
             }
             set
             {
-                tl.LogMessage("GuideRateDeclination Set", "Not implemented");
+                LogMessage("GuideRateDeclination Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("GuideRateDeclination", true);
             }
         }
@@ -724,12 +764,12 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("GuideRateRightAscension Get", "Not implemented");
+                LogMessage("GuideRateRightAscension Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("GuideRateRightAscension", false);
             }
             set
             {
-                tl.LogMessage("GuideRateRightAscension Set", "Not implemented");
+                LogMessage("GuideRateRightAscension Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("GuideRateRightAscension", true);
             }
         }
@@ -738,26 +778,26 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("IsPulseGuiding Get", "Not implemented");
+                LogMessage("IsPulseGuiding Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("IsPulseGuiding", false);
             }
         }
 
         public void MoveAxis(TelescopeAxes Axis, double Rate)
         {
-            tl.LogMessage("MoveAxis", "Not implemented");
+            LogMessage("MoveAxis", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("MoveAxis");
         }
 
         public void Park()
         {
-            tl.LogMessage("Park", "Not implemented");
+            LogMessage("Park", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("Park");
         }
 
         public void PulseGuide(GuideDirections Direction, int Duration)
         {
-            tl.LogMessage("PulseGuide", "Not implemented");
+            LogMessage("PulseGuide", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("PulseGuide");
         }
 
@@ -765,13 +805,16 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                if (!connectedState)
-                    throw new ASCOM.NotConnectedException("RightAscension");
-                if (getCurrentMechanicalPosition(ref currentMechPosition))
-                    throw new ASCOM.ValueNotSetException("Declination");
-                double rightAscension = currentMechPosition.RAsky;
-                tl.LogMessage("RightAscension", "Get - " + utilities.HoursToHMS(rightAscension));
-                return rightAscension;
+                lock (internalLock)
+                {
+                    if (!connectedState)
+                        throw new ASCOM.NotConnectedException("RightAscension");
+                    if (getCurrentMechanicalPosition(ref currentMechPosition))
+                        throw new ASCOM.ValueNotSetException("Declination");
+                    double rightAscension = currentMechPosition.RAsky;
+                    LogMessage("RightAscension", "Get - " + utilities.HoursToHMS(rightAscension));
+                    return rightAscension;
+                }
             }
         }
 
@@ -780,19 +823,19 @@ namespace ASCOM.EQ500X
             get
             {
                 double rightAscensionRate = 0.0;
-                tl.LogMessage("RightAscensionRate", "Get - " + rightAscensionRate.ToString());
+                LogMessage("RightAscensionRate", "Get - " + rightAscensionRate.ToString());
                 return rightAscensionRate;
             }
             set
             {
-                tl.LogMessage("RightAscensionRate Set", "Not implemented");
+                LogMessage("RightAscensionRate Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("RightAscensionRate", true);
             }
         }
 
         public void SetPark()
         {
-            tl.LogMessage("SetPark", "Not implemented");
+            LogMessage("SetPark", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("SetPark");
         }
 
@@ -800,26 +843,17 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                if (!connectedState)
-                    throw new ASCOM.NotConnectedException("SideOfPier");
-                switch (currentMechPosition.PointingState)
+                lock (internalLock)
                 {
-                    case MechanicalPoint.PointingStates.POINTING_NORMAL:
-                        tl.LogMessage("SideOfPier Get", "Pointing Normal - West");
-                        return PierSide.pierWest;
-                    case MechanicalPoint.PointingStates.POINTING_BEYOND_POLE:
-                        tl.LogMessage("SideOfPier Get", "Pointing Beyond Pole - East");
-                        return PierSide.pierWest;
-                    default:
-                        tl.LogMessage("SideOfPier Get", "Pointing Unknown");
-                        return PierSide.pierUnknown;
+                    if (!connectedState)
+                        throw new ASCOM.NotConnectedException("SideOfPier");
+                    LogMessage("SideOfPier Get", $"Pointing {m_SideOfPier.ToString()}");
+                    return m_SideOfPier;
                 }
             }
             set
             {
-                if (!connectedState)
-                    throw new ASCOM.NotConnectedException("SideOfPier");
-                tl.LogMessage("SideOfPier Set", "Not implemented");
+                LogMessage("SideOfPier Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("SideOfPier", true);
             }
         }
@@ -834,9 +868,9 @@ namespace ASCOM.EQ500X
                 {
                     var jd = utilities.DateUTCToJulian(DateTime.UtcNow);
                     novas.SiderealTime(jd, 0, novas.DeltaT(jd),
-                        ASCOM.Astrometry.GstType.GreenwichApparentSiderealTime,
-                        ASCOM.Astrometry.Method.EquinoxBased,
-                        ASCOM.Astrometry.Accuracy.Reduced, ref siderealTime);
+                        GstType.GreenwichApparentSiderealTime,
+                        Method.EquinoxBased,
+                        Accuracy.Reduced, ref siderealTime);
                 }
 
                 // Allow for the longitude
@@ -845,7 +879,7 @@ namespace ASCOM.EQ500X
                 // Reduce to the range 0 to 24 hours
                 siderealTime = astroUtilities.ConditionRA(siderealTime);
 
-                tl.LogMessage("SiderealTime", "Get - " + siderealTime.ToString());
+                LogMessage("SiderealTime", "Get - " + siderealTime.ToString());
                 return siderealTime;
             }
         }
@@ -856,14 +890,14 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteElevation");
-                tl.LogMessage("SiteElevation Get", String.Format("Elevation $0", location.elevation));
+                LogMessage("SiteElevation Get", String.Format("Elevation $0", location.elevation));
                 return location.elevation;
             }
             set
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteElevation");
-                tl.LogMessage("SiteElevation Set", String.Format("Set Elevation $0", value));
+                LogMessage("SiteElevation Set", String.Format("Set Elevation $0", value));
                 location.elevation = value;
             }
         }
@@ -874,14 +908,14 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLatitude");
-                tl.LogMessage("SiteElevation Get", String.Format("Elevation $0", location.latitude));
+                LogMessage("SiteElevation Get", String.Format("Elevation $0", location.latitude));
                 return location.latitude;
             }
             set
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLatitude");
-                tl.LogMessage("SiteLatitude Set", String.Format("Latitude $0", location.latitude));
+                LogMessage("SiteLatitude Set", String.Format("Latitude $0", location.latitude));
                 location.latitude = value;
             }
         }
@@ -892,25 +926,28 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLongitude");
-                tl.LogMessage("SiteLongitude Get", String.Format("Elevation $0", location.longitude));
+                LogMessage("SiteLongitude Get", String.Format("Elevation $0", location.longitude));
                 return location.longitude;
             }
             set
             {
-                if (!Connected)
-                    throw new ASCOM.NotConnectedException("SiteLongitude");
-
-                tl.LogMessage("SiteLongitude Set", String.Format("Longitude $0", value));
-                location.longitude = value;
-
-                if (isSimulated)
-                    simEQ500X.LST = 0.0 + value / 15.0;
-
-                if (!getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
+                lock (internalLock)
                 {
-                    double LST = isSimulated ? simEQ500X.LST : SiderealTime;
-                    Sync(LST - 6, currentMechPosition.DECsky);
-                    tl.LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST $0", utilities.HoursToHMS(LST)));
+                    if (!Connected)
+                        throw new ASCOM.NotConnectedException("SiteLongitude");
+
+                    LogMessage("SiteLongitude Set", String.Format("Longitude $0", value));
+                    location.longitude = value;
+
+                    if (isSimulated)
+                        simEQ500X.LST = 0.0 + value / 15.0;
+
+                    if (!getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
+                    {
+                        double LST = isSimulated ? simEQ500X.LST : SiderealTime;
+                        Sync(LST - 6, currentMechPosition.DECsky);
+                        LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST $0", utilities.HoursToHMS(LST)));
+                    }
                 }
             }
         }
@@ -919,49 +956,113 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("SlewSettleTime Get", "Not implemented");
+                LogMessage("SlewSettleTime Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("SlewSettleTime", false);
             }
             set
             {
-                tl.LogMessage("SlewSettleTime Set", "Not implemented");
+                LogMessage("SlewSettleTime Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("SlewSettleTime", true);
             }
         }
 
         public void SlewToAltAz(double Azimuth, double Altitude)
         {
-            tl.LogMessage("SlewToAltAz", "Not implemented");
+            LogMessage("SlewToAltAz", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("SlewToAltAz");
         }
 
         public void SlewToAltAzAsync(double Azimuth, double Altitude)
         {
-            tl.LogMessage("SlewToAltAzAsync", "Not implemented");
+            LogMessage("SlewToAltAzAsync", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("SlewToAltAzAsync");
         }
 
-        public void SlewToCoordinates(double RightAscension, double Declination)
+        public void SlewToCoordinates(double ra, double dec)
         {
-            tl.LogMessage("SlewToCoordinates", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SlewToCoordinates");
+            lock (internalLock)
+            {
+                LogMessage("SlewToCoordinates", $"Slewing to {ra} {dec}");
+
+                if (!Connected)
+                    throw new ASCOM.NotConnectedException("SlewToCoordinates");
+
+                // Check whether a meridian flip is required
+                double LST = isSimulated ? simEQ500X.LST : SiderealTime;
+                double HA = LST - ra;
+                while (+12 <= HA) HA -= 24;
+                while (HA <= -12) HA += 24;
+
+                // Deduce required orientation of mount in HA quadrants - set orientation BEFORE coordinates!
+                targetMechPosition.PointingState = (0 <= HA && HA < 12) ? MechanicalPoint.PointingStates.POINTING_NORMAL : MechanicalPoint.PointingStates.POINTING_BEYOND_POLE;
+                targetMechPosition.RAsky = ra;
+                targetMechPosition.DECsky = dec;
+
+                // If moving, let's stop it first.
+                if (Slewing)
+                {
+                    AbortSlew();
+
+                    // sleep for 100 mseconds
+                    System.Threading.Thread.Sleep(100);
+                }
+
+                /* The goto feature is quite imprecise because it will always use full speed.
+                 * By the time the mount stops, the position is off by 0-5 degrees, depending on the speed attained during the move.
+                 * Additionally, a firmware limitation prevents the goto feature from slewing to close coordinates, and will cause uneeded axis rotation.
+                 * Therefore, don't use the goto feature for a goto, and let ReadScope adjust the position by itself.
+                 */
+
+                // Set target position and adjust
+                if (setTargetMechanicalPosition(targetMechPosition))
+                {
+                    //EqNP.s = IPS_ALERT;
+                    //IDSetNumber(&EqNP, "Error setting RA/DEC.");
+                    return;// false;
+                }
+                else
+                {
+                    targetMechPosition.RAsky = /* targetRA = */ ra;
+                    targetMechPosition.DECsky = /* targetDEC = */ dec;
+
+                    LogMessage("SlewToCoordinates", string.Format("Goto target ({0}h,{1:F2}°) HA {2}, LST {3}, quadrant {4}", ra, dec, HA, LST, targetMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole"));
+                }
+
+                // Limit the number of loops
+                countdown = MAX_CONVERGENCE_LOOPS;
+
+                // Reset original adjustment
+                // Reset movement markers
+
+                m_TrackState = TrackState.SLEWING;
+
+                // Remember current slew rate
+                savedSlewRateIndex = m_SlewRate;// static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
+
+                // Format RA/DEC for logs
+                //    char RAStr[16] = { 0 }, DecStr[16] = { 0 };
+                //fs_sexa(RAStr, targetRA, 2, 3600);
+                //fs_sexa(DecStr, targetDEC, 2, 3600);
+
+                //LogMessage("SlewToCoordinates", $"Slewing to JNow RA: {RAStr} - DEC: {DecStr}");
+            }
         }
 
         public void SlewToCoordinatesAsync(double RightAscension, double Declination)
         {
-            tl.LogMessage("SlewToCoordinatesAsync", "Not implemented");
+            LogMessage("SlewToCoordinatesAsync", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("SlewToCoordinatesAsync");
         }
 
         public void SlewToTarget()
         {
-            tl.LogMessage("SlewToTarget", "Not implemented");
+            LogMessage("SlewToTarget", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("SlewToTarget");
         }
 
         public void SlewToTargetAsync()
         {
-            tl.LogMessage("SlewToTargetAsync", "Not implemented");
+            LogMessage("SlewToTargetAsync", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("SlewToTargetAsync");
         }
 
@@ -969,27 +1070,41 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("Slewing Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("Slewing", false);
+                lock (internalLock)
+                {
+                    LogMessage("Slewing", $"Get - {m_TrackState.ToString()}");
+                    return m_TrackState == TrackState.SLEWING;
+                }
+            }
+            internal set
+            {
+                lock (internalLock)
+                {
+                    m_TrackState = value ? TrackState.SLEWING : TrackState.TRACKING;
+                    LogMessage("Slewing", $"Slewing state set to {m_TrackState.ToString()}");
+                }
             }
         }
 
         public void SyncToAltAz(double Azimuth, double Altitude)
         {
-            tl.LogMessage("SyncToAltAz", "Not implemented");
+            LogMessage("SyncToAltAz", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("SyncToAltAz");
         }
 
         public void SyncToCoordinates(double RightAscension, double Declination)
         {
-            tl.LogMessage("SyncToCoordinates", String.Format("Set RA:$0 DEC:$1", RightAscension, Declination));
-            if (!Sync(RightAscension, Declination))
-                throw new ASCOM.DriverException("SyncToCoordinates");
+            LogMessage("SyncToCoordinates", String.Format("Set RA:$0 DEC:$1", RightAscension, Declination));
+            lock (internalLock)
+            {
+                if (!Sync(RightAscension, Declination))
+                    throw new ASCOM.DriverException("SyncToCoordinates");
+            }
         }
 
         public void SyncToTarget()
         {
-            tl.LogMessage("SyncToTarget", "Not implemented");
+            LogMessage("SyncToTarget", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("SyncToTarget");
         }
 
@@ -997,12 +1112,12 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("TargetDeclination Get", "Not implemented");
+                LogMessage("TargetDeclination Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("TargetDeclination", false);
             }
             set
             {
-                tl.LogMessage("TargetDeclination Set", "Not implemented");
+                LogMessage("TargetDeclination Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("TargetDeclination", true);
             }
         }
@@ -1011,12 +1126,12 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("TargetRightAscension Get", "Not implemented");
+                LogMessage("TargetRightAscension Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("TargetRightAscension", false);
             }
             set
             {
-                tl.LogMessage("TargetRightAscension Set", "Not implemented");
+                LogMessage("TargetRightAscension Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("TargetRightAscension", true);
             }
         }
@@ -1025,14 +1140,19 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                bool tracking = true;
-                tl.LogMessage("Tracking", "Get - " + tracking.ToString());
-                return tracking;
+                lock (internalLock)
+                {
+                    LogMessage("Tracking", "Get - " + m_TrackState.ToString());
+                    return m_TrackState == TrackState.TRACKING;
+                }
             }
             set
             {
-                tl.LogMessage("Tracking Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("Tracking", true);
+                lock (internalLock)
+                {
+                    LogMessage("Tracking", $"Tracking state set to {value}");
+                    m_TrackState = value ? TrackState.TRACKING : TrackState.SLEWING;
+                }
             }
         }
 
@@ -1040,12 +1160,12 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                tl.LogMessage("TrackingRate Get", "Not implemented");
+                LogMessage("TrackingRate Get", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("TrackingRate", false);
             }
             set
             {
-                tl.LogMessage("TrackingRate Set", "Not implemented");
+                LogMessage("TrackingRate Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("TrackingRate", true);
             }
         }
@@ -1055,10 +1175,10 @@ namespace ASCOM.EQ500X
             get
             {
                 ITrackingRates trackingRates = new TrackingRates();
-                tl.LogMessage("TrackingRates", "Get - ");
+                LogMessage("TrackingRates", "Get - ");
                 foreach (DriveRates driveRate in trackingRates)
                 {
-                    tl.LogMessage("TrackingRates", "Get - " + driveRate.ToString());
+                    LogMessage("TrackingRates", "Get - " + driveRate.ToString());
                 }
                 return trackingRates;
             }
@@ -1069,19 +1189,19 @@ namespace ASCOM.EQ500X
             get
             {
                 DateTime utcDate = DateTime.UtcNow;
-                tl.LogMessage("TrackingRates", "Get - " + String.Format("MM/dd/yy HH:mm:ss", utcDate));
+                LogMessage("TrackingRates", "Get - " + String.Format("MM/dd/yy HH:mm:ss", utcDate));
                 return utcDate;
             }
             set
             {
-                tl.LogMessage("UTCDate Set", "Not implemented");
+                LogMessage("UTCDate Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("UTCDate", true);
             }
         }
 
         public void Unpark()
         {
-            tl.LogMessage("Unpark", "Not implemented");
+            LogMessage("Unpark", "Not implemented");
             throw new ASCOM.MethodNotImplementedException("Unpark");
         }
 
@@ -1224,61 +1344,444 @@ namespace ASCOM.EQ500X
         internal static void LogMessage(string identifier, string message, params object[] args)
         {
             var msg = string.Format(message, args);
+            Debug.WriteLine(identifier + " | " + msg);
             tl.LogMessage(identifier, msg);
         }
         #endregion
 
         #region Mount functionalities
 
+        // One degree, one arcminute, one arcsecond
+        const double ONEDEGREE = 1.0;
+        const double ARCMINUTE = ONEDEGREE / 60.0;
+        const double ARCSECOND = ONEDEGREE / 3600.0;
+
+        // This is the minimum detectable movement in RA/DEC
+        readonly double RA_GRANULARITY = Math.Round((15.0 * ARCSECOND) * 3600.0, MidpointRounding.AwayFromZero) / 3600.0;
+        readonly double DEC_GRANULARITY = Math.Round((1.0 * ARCSECOND) * 3600.0, MidpointRounding.AwayFromZero) / 3600.0;
+
+        // This is the number of loops expected to achieve convergence on each slew rate
+        // A full rotation at 5deg/s would take 360/5=72s to complete at RS speed, checking position twice per second
+        const int MAX_CONVERGENCE_LOOPS = 144;
+
+
+        // Hardcoded adjustment intervals
+        // RA/DEC deltas are adjusted at specific 'slew_rate' down to 'epsilon' degrees when smaller than 'distance' degrees
+        // The greater adjustment requirement drives the slew rate (one single command for both axis)
+        // From https://stackoverflow.com/a/309528/528052
+        struct _adjustment
+        {
+            public string slew_rate;
+            public int switch_index;
+            public double epsilon;
+            public double distance;
+            public int polling_interval;
+            public _adjustment(string sr, int si, double e, double d, int pi)
+            {
+                slew_rate = sr;
+                switch_index = si;
+                epsilon = e;
+                distance = d;
+                polling_interval = pi;
+            }
+        };
+
+        static readonly IList<_adjustment> adjustments = new ReadOnlyCollection<_adjustment>(new[] {
+            new _adjustment(":RG#", 0, 1*ARCSECOND, 0.7*ARCMINUTE,  100 ),   // Guiding speed
+            new _adjustment(":RC#", 1, 0.7*ARCMINUTE, 10*ARCMINUTE, 200 ),   // Centering speed
+            new _adjustment(":RM#", 2, 10*ARCMINUTE, 5*ONEDEGREE, 500 ),   // Finding speed
+            new _adjustment(":RS#", 3, 5*ONEDEGREE,  360*ONEDEGREE, 1000 ), // Slew speed
+        });
+
+        private int adjustment = -1;
+        private bool RAmDecrease = false, RAmIncrease = false, DECmDecrease = false, DECmIncrease = false;
+        private long PollMs = 1000;
+        //private TelescopeSlewRate savedSlewRateIndex;
+        private int countdown;
+
+        private enum TrackState { TRACKING, SLEWING };
+        private TrackState m_TrackState = TrackState.TRACKING;
+
+        private enum SlewRate { SLEW_GUIDE, SLEW_CENTER, SLEW_FIND, SLEW_MAX };
+        private SlewRate m_SlewRate = SlewRate.SLEW_MAX;
+        private SlewRate savedSlewRateIndex = SlewRate.SLEW_MAX;
+        private bool _gotoEngaged = false;
+
+        // Previous alignment marker to spot when to change slew rate
+        private static int previous_adjustment = -1;
+        private PierSide m_SideOfPier = PierSide.pierWest;
+        private object internalLock = new object();
+
         private bool ReadScopeStatus()
         {
-            if (getCurrentMechanicalPosition(ref currentMechPosition))
+            lock (internalLock)
             {
-                LogMessage("ReadScopeStatus", "Reading scope status failed");
+                if (isSimulated)
+                {
+                    // These are the simulated rates
+                    double[] rates = {
+                        /*RG*/  5 * ARCSECOND,
+                        /*RC*/  5 * ARCMINUTE,
+                        /*RM*/ 20 * ARCMINUTE,
+                        /*RS*/  5 * ONEDEGREE,
+                    };
+
+                    // Calculate elapsed time since last status read
+                    long now = Stopwatch.GetTimestamp();
+                    long delta = 0;
+                    if (0 != simEQ500X.last_sim)
+                        if (simEQ500X.last_sim < now)
+                            delta = now - simEQ500X.last_sim;
+                        else
+                            delta = (long.MaxValue - simEQ500X.last_sim) + now;
+                    simEQ500X.last_sim = now;
+                    double delta_s = (double) delta / Stopwatch.Frequency;
+
+                    // Simulate movement if needed
+                    if (0 <= adjustment)
+                    {
+                        // Use currentRA/currentDEC to store smaller-than-one-arcsecond values
+                        if (RAmDecrease) simEQ500X.MechanicalRA = (simEQ500X.MechanicalRA - rates[adjustment] * delta_s / 15.0 + 24.0) % 24.0;
+                        if (RAmIncrease) simEQ500X.MechanicalRA = (simEQ500X.MechanicalRA + rates[adjustment] * delta_s / 15.0 + 24.0) % 24.0;
+                        if (DECmDecrease) simEQ500X.MechanicalDEC -= rates[adjustment] * delta_s;
+                        if (DECmIncrease) simEQ500X.MechanicalDEC += rates[adjustment] * delta_s;
+
+                        // Update current position and rewrite simulated mechanical positions
+                        MechanicalPoint p = new MechanicalPoint(simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
+                        p.toStringRA(ref simEQ500X.MechanicalRAStr);
+                        p.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
+
+                        LogMessage("ReadScopeStatus", string.Format("New mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2}°,{3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s));
+                    }
+                }
+
+                if (getCurrentMechanicalPosition(ref currentMechPosition))
+                {
+                    LogMessage("ReadScopeStatus", "Reading scope status failed");
+                    restartReadScopeStatusTimer();
+                    return false;
+                }
+
+                bool ra_changed = m_RightAscension != currentMechPosition.RAsky;
+                bool dec_changed = m_Declination != currentMechPosition.DECsky;
+
+                if (dec_changed)
+                    m_Declination = currentMechPosition.DECsky;
+
+                if (ra_changed)
+                {
+                    m_RightAscension = currentMechPosition.RAsky;
+
+                    // Update the side of pier
+                    double LST = isSimulated ? simEQ500X.LST : SiderealTime;
+                    double HA = LST - m_RightAscension;
+                    while (+12 <= HA) HA -= 24;
+                    while (HA <= -12) HA += 24;
+                    switch (currentMechPosition.PointingState)
+                    {
+                        case MechanicalPoint.PointingStates.POINTING_NORMAL:
+                            m_SideOfPier = HA < 6 ? PierSide.pierEast : PierSide.pierWest;
+                            break;
+                        case MechanicalPoint.PointingStates.POINTING_BEYOND_POLE:
+                            m_SideOfPier = 6 < HA ? PierSide.pierEast : PierSide.pierWest;
+                            break;
+                    }
+                    LogMessage("ReadScopeStatus", "Mount HA={0:F3}h pointing {1} on {2} side", HA, currentMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole", SideOfPier == PierSide.pierEast ? "east" : "west");
+                }
+
+                /*
+                // If we are using the goto feature, check state
+                if (TrackState.SLEWING == m_TrackState && _gotoEngaged)
+                {
+                    if (EqN[AXIS_RA].value == currentRA && EqN[AXIS_DE].value == currentDEC)
+                    {
+                        _gotoEngaged = false;
+
+                        // Preliminary goto is complete, continue
+                        if (!Goto(targetMechPosition.RAsky, targetMechPosition.DECsky))
+                            goto slew_failure;
+                    }
+                }
+                */
+
+                // If we are adjusting, adjust movement and timer time to achieve arcsecond goto precision
+                if (TrackState.SLEWING == m_TrackState && !_gotoEngaged)
+                {
+                    // Compute RA/DEC deltas - keep in mind RA is in hours on the mount, with a granularity of 15 degrees
+                    double ra_delta = currentMechPosition.RA_degrees_to(targetMechPosition);
+                    double dec_delta = currentMechPosition.DEC_degrees_to(targetMechPosition);
+                    double abs_ra_delta = Math.Abs(ra_delta);
+                    double abs_dec_delta = Math.Abs(dec_delta);
+
+                    // If mount is not at target, adjust
+                    if (RA_GRANULARITY <= abs_ra_delta || DEC_GRANULARITY <= abs_dec_delta)
+                    {
+                        // This will hold required adjustments in RA and DEC axes
+                        int ra_adjust = -1, dec_adjust = -1;
+
+                        // Choose slew rate for RA based on distance to target
+                        for (int i = 0; i < adjustments.Count && -1 == ra_adjust; i++)
+                            if (abs_ra_delta <= adjustments[i].distance)
+                                ra_adjust = i;
+                        Debug.Assert(-1 != ra_adjust);
+                        LogMessage("ReadScopeStatus", string.Format("RA  {0:F2}-{1:F2} = {2:F2}° under {3:F2}° would require adjustment at {4} until less than {5:F2}°", targetMechPosition.RAm * 15.0, currentMechPosition.RAm * 15.0, ra_delta, adjustments[ra_adjust].distance, adjustments[ra_adjust].slew_rate, Math.Max(adjustments[ra_adjust].epsilon, 15.0 / 3600.0)));
+
+                        // Choose slew rate for DEC based on distance to target
+                        for (int i = 0; i < adjustments.Count && -1 == dec_adjust; i++)
+                            if (abs_dec_delta <= adjustments[i].distance)
+                                dec_adjust = i;
+                        Debug.Assert(-1 != dec_adjust);
+                        LogMessage("ReadScopeStatus", string.Format("DEC {0:F2}-{1:F2} = {2:F2}° under {3:F2}° would require adjustment at {4} until less than {5:F2}°", targetMechPosition.DECm, currentMechPosition.DECm, dec_delta, adjustments[dec_adjust].distance, adjustments[dec_adjust].slew_rate, adjustments[dec_adjust].epsilon));
+
+                        // This will hold the command string to send to the mount, with move commands
+                        String CmdString = "";
+
+                        // We adjust the axis which has the faster slew rate first, eventually both axis at the same time if they have same speed
+                        // Because we have only one rate for both axes, we need to choose the fastest rate and control the axis (eventually both) which requires that rate
+                        adjustment = ra_adjust < dec_adjust ? dec_adjust : ra_adjust;
+
+                        // If RA was moving but now would be moving at the wrong rate, stop it
+                        if (ra_adjust != adjustment)
+                        {
+                            if (RAmIncrease) { CmdString += ":Qe#"; RAmIncrease = false; }
+                            if (RAmDecrease) { CmdString += ":Qw#"; RAmDecrease = false; }
+                        }
+
+                        // If DEC was moving but now would be moving at the wrong rate, stop it
+                        if (dec_adjust != adjustment)
+                        {
+                            if (DECmDecrease) { CmdString += ":Qn#"; DECmDecrease = false; }
+                            if (DECmIncrease) { CmdString += ":Qs#"; DECmIncrease = false; }
+                        }
+
+                        // Prepare for the new rate
+                        if (previous_adjustment != adjustment)
+                        {
+                            // Add the new slew rate
+                            CmdString += adjustments[adjustment].slew_rate;
+
+                            // If adjustment goes expectedly down, reset countdown
+                            if (adjustment < previous_adjustment)
+                                countdown = MAX_CONVERGENCE_LOOPS;
+
+                            // FIXME: wait for the mount to slow down to improve convergence?
+
+                            // Remember previous adjustment
+                            previous_adjustment = adjustment;
+                        }
+                        LogMessage("ReadScopeStatus", $"Current adjustment speed is {adjustments[adjustment].slew_rate}");
+
+                        // If RA is being adjusted, check delta against adjustment epsilon to enable or disable movement
+                        // The smallest change detectable in RA is 1/3600 hours, or 15/3600 degrees
+                        if (ra_adjust == adjustment)
+                        {
+                            // This is the lowest limit of this adjustment
+                            double ra_epsilon = Math.Max(adjustments[adjustment].epsilon, RA_GRANULARITY);
+
+                            // Find requirement
+                            bool doDecrease = ra_epsilon <= ra_delta;
+                            bool doIncrease = ra_delta <= -ra_epsilon;
+                            Debug.Assert(!(doDecrease && doIncrease));
+
+                            // Stop movement if required - just stopping or going opposite
+                            if (RAmIncrease && (!doDecrease || doIncrease)) { CmdString += ":Qe#"; RAmIncrease = false; }
+                            if (RAmDecrease && (!doIncrease || doDecrease)) { CmdString += ":Qw#"; RAmDecrease = false; }
+
+                            // Initiate movement if required
+                            if (doDecrease && !RAmIncrease) { CmdString += ":Me#"; RAmIncrease = true; }
+                            if (doIncrease && !RAmDecrease) { CmdString += ":Mw#"; RAmDecrease = true; }
+                        }
+
+                        // If DEC is being adjusted, check delta against adjustment epsilon to enable or disable movement
+                        // The smallest change detectable in DEC is 1/3600 degrees
+                        if (dec_adjust == adjustment)
+                        {
+                            // This is the lowest limit of this adjustment
+                            double dec_epsilon = Math.Max(adjustments[adjustment].epsilon, DEC_GRANULARITY);
+
+                            // Find requirement
+                            bool doDecrease = dec_epsilon <= dec_delta;
+                            bool doIncrease = dec_delta <= -dec_epsilon;
+                            Debug.Assert(!(doDecrease && doIncrease));
+
+                            // Stop movement if required - just stopping or going opposite
+                            if (DECmIncrease && (!doDecrease || doIncrease)) { CmdString += ":Qn#"; DECmIncrease = false; }
+                            if (DECmDecrease && (!doIncrease || doDecrease)) { CmdString += ":Qs#"; DECmDecrease = false; }
+
+                            // Initiate movement if required
+                            if (doDecrease && !DECmIncrease) { CmdString += ":Mn#"; DECmIncrease = true; }
+                            if (doIncrease && !DECmDecrease) { CmdString += ":Ms#"; DECmDecrease = true; }
+                        }
+
+                        // Basic algorithm sanitization on movement orientation: move one way or the other, or not at all
+                        Debug.Assert(!(RAmIncrease && RAmDecrease) && !(DECmDecrease && DECmIncrease));
+
+                        // This log shows target in Degrees/Degrees and delta in Degrees/Degrees
+                        LogMessage("ReadScopeStatus", string.Format("Centering ({0:F2}°,{1:F2}°) delta ({2:F2}°,{3:F2}°) moving {4}{5}{6}{7} at {8} until less than ({9:F2}°,{10:F2}°)", targetMechPosition.RAm * 15.0, targetMechPosition.DECm, ra_delta, dec_delta, RAmDecrease ? 'W' : '.', RAmIncrease ? 'E' : '.', DECmDecrease ? 'N' : '.', DECmIncrease ? 'S' : '.', adjustments[adjustment].slew_rate, Math.Max(adjustments[adjustment].epsilon, RA_GRANULARITY), adjustments[adjustment].epsilon));
+
+                        // If we have a command to run, issue it
+                        if (0 < CmdString.Length)
+                        {
+                            // Send command to mount
+                            if (0 < sendCmd(CmdString))
+                            {
+                                LogMessage("ReadScopeStatus", string.Format("Error centering ({0:F2}°,{1:F2}°)", targetMechPosition.RAm * 15.0, targetMechPosition.DECm));
+                                //slewError(-1);
+                                restartReadScopeStatusTimer();
+                                return false;
+                            }
+
+                            // Update slew rate
+                            // IUResetSwitch(&SlewRateSP);
+                            // SlewRateS[adjustment->switch_index].s = ISS_ON;
+                            // IDSetSwitch(&SlewRateSP, nullptr);
+                        }
+
+                        // If all movement flags are cleared, we are done adjusting
+                        if (!RAmIncrease && !RAmDecrease && !DECmDecrease && !DECmIncrease)
+                        {
+                            LogMessage("ReadScopeStatus", string.Format("Centering delta ({0},{1}) intermediate adjustment complete ({2} loops)", ra_delta, dec_delta, MAX_CONVERGENCE_LOOPS - countdown));
+                            adjustment = -1;
+                        }
+                        // Else, if it has been too long since we started, maybe we have a convergence problem.
+                        // The mount slows down when requested to stop under minimum distance, so we may miss the target.
+                        // The behavior is improved by changing the slew rate while converging, but is still tricky to tune.
+                        else if (--countdown <= 0)
+                        {
+                            LogMessage("ReadScopeStatus", "Failed centering to ({0},{1}) under loop limit, aborting...", targetMechPosition.RAm, targetMechPosition.DECm);
+                            goto slew_failure;
+                        }
+                        // Else adjust poll timeout to adjustment speed and continue
+                        else PollMs = adjustments[adjustment].polling_interval;
+                    }
+                    // If we attained target position at one arcsecond precision, finish procedure and track target
+                    else
+                    {
+                        LogMessage("ReadScopeStatus", "Slew is complete. Tracking...");
+                        sendCmd(":Q#");
+                        updateSlewRate(savedSlewRateIndex);
+                        adjustment = -1;
+                        PollMs = 1000;
+                        m_TrackState = TrackState.TRACKING;
+                    }
+                }
+                else
+                {
+                    // Force-reset markers in case we got aborted
+                    if (DECmDecrease) DECmDecrease = false;
+                    if (DECmIncrease) DECmIncrease = false;
+                    if (RAmIncrease) RAmIncrease = false;
+                    if (RAmDecrease) RAmDecrease = false;
+                    adjustment = -1;
+                }
+                // Update RA/DEC properties
+                //if (ra_changed || dec_changed)
+                //    NewRaDec(currentRA, currentDEC);
+
+                restartReadScopeStatusTimer();
+                return true;
+
+            slew_failure:
+                // If we failed at some point, attempt to stop moving and update properties with error
+                sendCmd(":Q#");
+                updateSlewRate(savedSlewRateIndex);
+                adjustment = -1;
+                PollMs = 1000;
+                m_TrackState = TrackState.TRACKING;
+                m_RightAscension = currentMechPosition.RAsky;
+                m_Declination = currentMechPosition.DECsky;
+                //NewRaDec(currentRA, currentDEC);
+                //slewError(-1);
+                restartReadScopeStatusTimer();
                 return false;
             }
+        }
 
-            return true;
+        private void restartReadScopeStatusTimer()
+        {
+            if (null == m_ReadScopeTimer)
+            {
+                m_ReadScopeTimer = new System.Timers.Timer(PollMs);
+                m_ReadScopeTimer.Elapsed += new ElapsedEventHandler((object obj, ElapsedEventArgs e) => ReadScopeStatus());
+                m_ReadScopeTimer.AutoReset = false;
+                m_ReadScopeTimer.Enabled = true;
+            }
+            else
+            {
+                if (PollMs != m_ReadScopeTimer.Interval)
+                {
+                    LogMessage("restartReadScopeStatusTimer", $"Polling mount status every {PollMs}ms");
+                    m_ReadScopeTimer.Interval = PollMs;
+                }
+                m_ReadScopeTimer.Start();
+            }
         }
 
         private bool Sync(double ra, double dec)
         {
-            targetMechPosition.RAsky = ra;
-            targetMechPosition.DECsky = dec;
-
-            if (!setTargetMechanicalPosition(targetMechPosition))
+            lock (internalLock)
             {
-                if (!isSimulation())
+                targetMechPosition.RAsky = ra;
+                targetMechPosition.DECsky = dec;
+
+                if (!setTargetMechanicalPosition(targetMechPosition))
                 {
-                    String b = "";
+                    if (!isSimulation())
+                    {
+                        String b = "";
 
-                    if (getCommandString(ref b, ":CM#") < 0)
+                        if (getCommandString(ref b, ":CM#") < 0)
+                            goto sync_error;
+                        if ("No name" == b)
+                            goto sync_error;
+                    }
+                    else
+                    {
+                        targetMechPosition.toStringRA(ref simEQ500X.MechanicalRAStr);
+                        targetMechPosition.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
+                        simEQ500X.MechanicalRA = targetMechPosition.RAm;
+                        simEQ500X.MechanicalDEC = targetMechPosition.DECm;
+                    }
+
+                    if (getCurrentMechanicalPosition(ref currentMechPosition))
                         goto sync_error;
-                    if ("No name" == b)
-                        goto sync_error;
-                }
-                else
-                {
-                    targetMechPosition.toStringRA(ref simEQ500X.MechanicalRAStr);
-                    targetMechPosition.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
-                    simEQ500X.MechanicalRA = targetMechPosition.RAm;
-                    simEQ500X.MechanicalDEC = targetMechPosition.DECm;
+
+                    //currentRA = currentMechPosition.RAsky;
+                    //currentDEC = currentMechPosition.DECsky;
+                    //NewRaDec(currentRA, currentDEC);
+
+                    LogMessage("Sync", "Mount synced to target RA '$2' DEC '$1'", currentMechPosition.RAsky, currentMechPosition.DECsky);
+                    return true;
                 }
 
-                if (getCurrentMechanicalPosition(ref currentMechPosition))
-                    goto sync_error;
-
-                //currentRA = currentMechPosition.RAsky;
-                //currentDEC = currentMechPosition.DECsky;
-                //NewRaDec(currentRA, currentDEC);
-
-                LogMessage("Sync", "Mount synced to target RA '$2' DEC '$1'", currentMechPosition.RAsky, currentMechPosition.DECsky);
-                return true;
+            sync_error:
+                LogMessage("Sync", "Mount sync to target RA '$0' DEC '$1' failed", ra, dec);
+                return false;
             }
+        }
 
-        sync_error:
-            LogMessage("Sync", "Mount sync to target RA '$0' DEC '$1' failed", ra, dec);
-            return false;
+        private void updateSlewRate(SlewRate rate)
+        {
+            lock (internalLock)
+            {
+                switch (rate)
+                {
+                    case SlewRate.SLEW_MAX:
+                        sendCmd(":RS#");
+                        break;
+                    case SlewRate.SLEW_FIND:
+                        sendCmd(":RF#");
+                        break;
+                    case SlewRate.SLEW_CENTER:
+                        sendCmd(":RC#");
+                        break;
+                    case SlewRate.SLEW_GUIDE:
+                        sendCmd(":RG#");
+                        break;
+                    default: return;
+                }
+                m_SlewRate = rate;
+            }
         }
         #endregion
 
@@ -1319,7 +1822,7 @@ namespace ASCOM.EQ500X
             if (result.parseStringDEC(b))
                 goto radec_error;
 
-            LogMessage("getCurrentMechanicalPosition", "Mount mechanical DEC reads '$0' as $1.", b, result.DECm);
+            LogMessage("getCurrentMechanicalPosition", "Mount mechanical DEC reads '{0}' as {1:F4}.", b, result.DECm);
 
             if (isSimulation())
                 b = simEQ500X.MechanicalRAStr;
@@ -1329,7 +1832,7 @@ namespace ASCOM.EQ500X
             if (result.parseStringRA(b))
                 goto radec_error;
 
-            LogMessage("getCurrentMechanicalPosition", "Mount mechanical RA reads '$0' as $1.", b, result.RAm);
+            LogMessage("getCurrentMechanicalPosition", "Mount mechanical RA reads '{0}' as {1:F4}.", b, result.RAm);
 
             p = result;
             return false;
@@ -1366,7 +1869,7 @@ namespace ASCOM.EQ500X
 
         internal int sendCmd(String data)
         {
-            LogMessage("SendCmd", "<$0>", data);
+            LogMessage("SendCmd", "<{0}>", data);
             if (!isSimulation())
             {
                 try
