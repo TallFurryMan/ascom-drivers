@@ -610,8 +610,8 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("CanSlew", "Get - " + false.ToString());
-                return false;
+                LogMessage("CanSlew", "Get - " + true.ToString());
+                return true;
             }
         }
 
@@ -853,6 +853,8 @@ namespace ASCOM.EQ500X
             }
             set
             {
+                if (!connectedState)
+                    throw new ASCOM.NotConnectedException("SideOfPier");
                 LogMessage("SideOfPier Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("SideOfPier", true);
             }

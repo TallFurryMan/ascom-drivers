@@ -63,23 +63,23 @@ namespace ascom_eq500x_test
                 //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.RightAscensionRate);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.RightAscensionRate = 0);
                 //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Tracking);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Tracking = false);
+                //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Tracking = false);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.TrackingRate);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.TrackingRate = 0);
 
                 /* Slewing */
-                Assert.IsFalse(device.CanSlew);
+                Assert.IsTrue(device.CanSlew);
                 Assert.IsFalse(device.CanSlewAltAz);
                 Assert.IsFalse(device.CanSlewAltAzAsync);
                 Assert.IsFalse(device.CanSlewAsync);
-                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(device.AbortSlew);
+                //Assert.ThrowsException<ASCOM.MethodNotImplementedException>(device.AbortSlew);
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SlewToAltAz(0, 0));
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SlewToAltAzAsync(0, 0));
-                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SlewToCoordinates(0, 0));
+                //Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SlewToCoordinates(0, 0));
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SlewToCoordinatesAsync(0, 0));
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(device.SlewToTarget);
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(device.SlewToTargetAsync);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Slewing);
+                //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Slewing);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.DestinationSideOfPier(0, 0));
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SlewSettleTime);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SlewSettleTime = 0);
