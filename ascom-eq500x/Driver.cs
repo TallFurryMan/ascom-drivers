@@ -980,7 +980,7 @@ namespace ASCOM.EQ500X
             throw new ASCOM.MethodNotImplementedException("SlewToAltAzAsync");
         }
 
-        public void SlewToCoordinates(double ra, double dec)
+        public void SlewToCoordinatesAsync(double ra, double dec)
         {
             lock (internalLock)
             {
@@ -1050,22 +1050,26 @@ namespace ASCOM.EQ500X
             }
         }
 
-        public void SlewToCoordinatesAsync(double RightAscension, double Declination)
+        public void SlewToCoordinates(double RightAscension, double Declination)
         {
-            LogMessage("SlewToCoordinatesAsync", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SlewToCoordinatesAsync");
+            LogMessage("SlewToCoordinatesAsync", $"Slewing to {RightAscension},{Declination}");
+            SlewToCoordinatesAsync(RightAscension, Declination);
+            while (!Tracking)
+                System.Threading.Thread.Sleep(250);
         }
 
         public void SlewToTarget()
         {
-            LogMessage("SlewToTarget", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SlewToTarget");
+            LogMessage("SlewToTarget", $"Slewing to {TargetRightAscension},{TargetDeclination}");
+            SlewToCoordinatesAsync(TargetRightAscension, TargetDeclination);
+            while (!Tracking)
+                System.Threading.Thread.Sleep(250);
         }
 
         public void SlewToTargetAsync()
         {
-            LogMessage("SlewToTargetAsync", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SlewToTargetAsync");
+            LogMessage("SlewToTargetAsync", $"Slewing to {TargetRightAscension},{TargetDeclination}");
+            SlewToCoordinatesAsync(TargetRightAscension, TargetDeclination);
         }
 
         public bool Slewing
@@ -1114,13 +1118,13 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("TargetDeclination Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("TargetDeclination", false);
+                LogMessage("TargetDeclination Get", $"Target DEC {targetMechPosition.DECsky}");
+                return targetMechPosition.DECsky;
             }
             set
             {
-                LogMessage("TargetDeclination Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("TargetDeclination", true);
+                LogMessage("TargetDeclination Set", $"Target DEC {value}");
+                targetMechPosition.DECsky = value;
             }
         }
 
@@ -1128,13 +1132,13 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("TargetRightAscension Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("TargetRightAscension", false);
+                LogMessage("TargetRightAscension Get", $"Target RA {targetMechPosition.RAsky}");
+                return targetMechPosition.RAsky;
             }
             set
             {
-                LogMessage("TargetRightAscension Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("TargetRightAscension", true);
+                LogMessage("TargetRightAscension Set", $"Target RA {value}");
+                targetMechPosition.RAsky = value;
             }
         }
 
