@@ -99,11 +99,23 @@ namespace ASCOM.EQ500X
                 case TelescopeAxes.axisPrimary:
                     // TODO Initialize this array with any Primary axis rates that your driver may provide
                     // Example: m_Rates = new Rate[] { new Rate(10.5, 30.2), new Rate(54.0, 43.6) }
-                    this.rates = new Rate[0];
+                    this.rates = new Rate[]
+                    {
+                        new Rate(5.0/3600.0,5.0/3600.0),
+                        new Rate(5.0/60.0, 5.0/60.0),
+                        new Rate(20.0/60.0, 20.0/60.0),
+                        new Rate(5.0, 5.0),
+                    };
                     break;
                 case TelescopeAxes.axisSecondary:
                     // TODO Initialize this array with any Secondary axis rates that your driver may provide
-                    this.rates = new Rate[0];
+                    this.rates = new Rate[]
+                    {
+                        new Rate(5.0 / 3600.0, 5.0 / 3600.0),
+                        new Rate(5.0 / 60.0, 5.0 / 60.0),
+                        new Rate(20.0 / 60.0, 20.0 / 60.0),
+                        new Rate(5.0, 5.0),
+                    };
                     break;
                 case TelescopeAxes.axisTertiary:
                     // TODO Initialize this array with any Tertiary axis rates that your driver may provide

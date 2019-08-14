@@ -334,6 +334,54 @@ namespace ascom_eq500x_test
         }
 
         [TestMethod]
+        public void Test_RatesAndMoveAxis()
+        {
+            // Unsimulated movement causing no M commands, but testing IRates
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+            ASCOM.DeviceInterface.IAxisRates ra_rates = device.AxisRates(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary);
+            ASCOM.DeviceInterface.IAxisRates dec_rates = device.AxisRates(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary);
+            Assert.AreEqual(4, ra_rates.Count);
+            Assert.AreEqual(5.0 / 3600.0, ra_rates[1].Minimum); // 1-based
+            Assert.AreEqual(5.0 / 60.0, ra_rates[2].Minimum);
+            Assert.AreEqual(20.0 / 60.0, ra_rates[3].Minimum);
+            Assert.AreEqual(5.0, ra_rates[4].Minimum);
+            Assert.AreEqual(4, dec_rates.Count);
+            Assert.AreEqual(5.0 / 3600.0, dec_rates[1].Minimum);
+            Assert.AreEqual(5.0 / 60.0, dec_rates[2].Minimum);
+            Assert.AreEqual(20.0 / 60.0, dec_rates[3].Minimum);
+            Assert.AreEqual(5.0, dec_rates[4].Minimum);
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, 0.0);
+            device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, 0.0);
+            Assert.IsTrue(device.Tracking);
+            foreach (ASCOM.DeviceInterface.IRate ra_rate in ra_rates)
+            {
+                Assert.IsTrue(ra_rate.Minimum == ra_rate.Maximum);
+                Assert.IsTrue(0 < ra_rate.Minimum);
+                foreach (ASCOM.DeviceInterface.IRate dec_rate in dec_rates)
+                {
+                    Assert.IsTrue(device.Tracking);
+                    Assert.IsTrue(dec_rate.Minimum == dec_rate.Maximum);
+                    Assert.IsTrue(0 < dec_rate.Minimum);
+                    Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, ra_rate.Minimum + 1 / 3600.0));
+                    Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, dec_rate.Minimum + 1 / 3600.0));
+                    device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, ra_rate.Minimum);
+                    device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, dec_rate.Minimum);
+                    Assert.IsTrue(device.Slewing);
+                    device.AbortSlew();
+                    Assert.IsTrue(device.Tracking);
+                    device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, -ra_rate.Minimum);
+                    device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, -dec_rate.Minimum);
+                    Assert.IsTrue(device.Slewing);
+                    device.AbortSlew();
+                    Assert.IsTrue(device.Tracking);
+                }
+            }
+            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+        }
+
+        [TestMethod]
         public void Test_Goto_NoMovement()
         {
             device.Connected = true;

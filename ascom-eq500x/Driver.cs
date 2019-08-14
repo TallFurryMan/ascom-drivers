@@ -431,7 +431,7 @@ namespace ASCOM.EQ500X
             lock (internalLock)
             {
                 LogMessage("AbortSlew", $"Aborting slew called while {m_TrackState.ToString()}");
-                if (TrackState.SLEWING == m_TrackState)
+                if (TrackState.TRACKING != m_TrackState)
                 {
                     PollMs = 1000;
                     m_TrackState = TrackState.TRACKING;
@@ -783,10 +783,48 @@ namespace ASCOM.EQ500X
             }
         }
 
+        private SlewRate findSlewRate(TelescopeAxes axis, double rate)
+        {
+            // Requires strict match between SlewRate and IAxisRates in terms of rate
+            IAxisRates rates = AxisRates(axis);
+            for (int i = 1; i < rates.Count + 1; i++)
+                if (rates[i].Minimum <= rate && rate <= rates[i].Maximum)
+                    return (SlewRate)(i - 1);
+            throw new ASCOM.InvalidValueException($"Invalid axis rate {rate} on {axis.ToString()}");
+        }
+
         public void MoveAxis(TelescopeAxes Axis, double Rate)
         {
-            LogMessage("MoveAxis", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("MoveAxis");
+            LogMessage("MoveAxis", $"Moving {Axis.ToString()} at {Rate}°/s");
+            lock (internalLock)
+            {
+                if (TrackState.TRACKING == m_TrackState || TrackState.MOVING == m_TrackState)
+                {
+                    if (0.0 == Rate)
+                        return;
+
+                    SlewRate matchingRate = findSlewRate(Axis, Math.Abs(Rate));
+
+                    savedSlewRateIndex = m_SlewRate;
+                    updateSlewRate(matchingRate);
+
+                    switch (Axis)
+                    {
+                        case TelescopeAxes.axisPrimary:
+                            sendCmd(":M" + (0 < Rate ? 'w' : 'e') + '#');
+                            break;
+                        case TelescopeAxes.axisSecondary:
+                            sendCmd(":M" + (0 < Rate ? 'n' : 's') + '#');
+                            break;
+                        default:
+                            updateSlewRate(savedSlewRateIndex);
+                            throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
+                    }
+
+                    m_TrackState = TrackState.MOVING;
+                }
+                else throw new ASCOM.InvalidOperationException($"MoveAxis - Not tracking");
+            }
         }
 
         public void Park()
@@ -1079,7 +1117,7 @@ namespace ASCOM.EQ500X
                 lock (internalLock)
                 {
                     LogMessage("Slewing", $"Get - {m_TrackState.ToString()}");
-                    return m_TrackState == TrackState.SLEWING;
+                    return m_TrackState == TrackState.SLEWING || m_TrackState == TrackState.MOVING;
                 }
             }
             internal set
@@ -1087,7 +1125,7 @@ namespace ASCOM.EQ500X
                 lock (internalLock)
                 {
                     m_TrackState = value ? TrackState.SLEWING : TrackState.TRACKING;
-                    LogMessage("Slewing", $"Slewing state set to {m_TrackState.ToString()}");
+                    LogMessage("Slewing", $"Tracking state set to {m_TrackState.ToString()}");
                 }
             }
         }
@@ -1156,8 +1194,8 @@ namespace ASCOM.EQ500X
             {
                 lock (internalLock)
                 {
-                    LogMessage("Tracking", $"Tracking state set to {value}");
                     m_TrackState = value ? TrackState.TRACKING : TrackState.SLEWING;
+                    LogMessage("Slewing", $"Tracking state set to {m_TrackState.ToString()}");
                 }
             }
         }
@@ -1405,10 +1443,10 @@ namespace ASCOM.EQ500X
         //private TelescopeSlewRate savedSlewRateIndex;
         private int countdown;
 
-        private enum TrackState { TRACKING, SLEWING };
+        private enum TrackState { TRACKING, SLEWING, MOVING };
         private TrackState m_TrackState = TrackState.TRACKING;
 
-        private enum SlewRate { SLEW_GUIDE, SLEW_CENTER, SLEW_FIND, SLEW_MAX };
+        private enum SlewRate { SLEW_GUIDE, SLEW_CENTER, SLEW_FIND, SLEW_MAX }; // Strict match with IAxisRates
         private SlewRate m_SlewRate = SlewRate.SLEW_MAX;
         private SlewRate savedSlewRateIndex = SlewRate.SLEW_MAX;
         private bool _gotoEngaged = false;
@@ -1441,7 +1479,7 @@ namespace ASCOM.EQ500X
                         else
                             delta = (long.MaxValue - simEQ500X.last_sim) + now;
                     simEQ500X.last_sim = now;
-                    double delta_s = (double) delta / Stopwatch.Frequency;
+                    double delta_s = (double)delta / Stopwatch.Frequency;
 
                     // Simulate movement if needed
                     if (0 <= adjustment)
