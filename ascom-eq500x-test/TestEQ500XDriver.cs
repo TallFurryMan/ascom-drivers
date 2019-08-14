@@ -340,46 +340,71 @@ namespace ascom_eq500x_test
             // Unsimulated movement causing no M commands, but testing IRates
             device.Connected = true;
             Assert.IsTrue(device.Connected);
+
             IAxisRates ra_rates = device.AxisRates(TelescopeAxes.axisPrimary);
             IAxisRates dec_rates = device.AxisRates(TelescopeAxes.axisSecondary);
+
             Assert.AreEqual(4, ra_rates.Count);
             Assert.AreEqual(5.0 / 3600.0, ra_rates[1].Minimum); // 1-based
             Assert.AreEqual(5.0 / 60.0, ra_rates[2].Minimum);
             Assert.AreEqual(20.0 / 60.0, ra_rates[3].Minimum);
             Assert.AreEqual(5.0, ra_rates[4].Minimum);
+
             Assert.AreEqual(4, dec_rates.Count);
             Assert.AreEqual(5.0 / 3600.0, dec_rates[1].Minimum);
             Assert.AreEqual(5.0 / 60.0, dec_rates[2].Minimum);
             Assert.AreEqual(20.0 / 60.0, dec_rates[3].Minimum);
             Assert.AreEqual(5.0, dec_rates[4].Minimum);
-            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
+
             device.MoveAxis(TelescopeAxes.axisPrimary, 0.0);
             device.MoveAxis(TelescopeAxes.axisSecondary, 0.0);
             Assert.IsTrue(device.Tracking);
-            foreach (IRate ra_rate in ra_rates)
+
+            Assert.IsTrue(ra_rates.Count == dec_rates.Count);
+            string[] rates = new string[] { "SLEW_GUIDE", "SLEW_CENTER", "SLEW_FIND", "SLEW_MAX" };
+
+            for (int i = 1; i < ra_rates.Count + 1; i++)
             {
+                IRate ra_rate = ra_rates[i];
                 Assert.IsTrue(ra_rate.Minimum == ra_rate.Maximum);
                 Assert.IsTrue(0 < ra_rate.Minimum);
-                foreach (IRate dec_rate in dec_rates)
-                {
-                    Assert.IsTrue(device.Tracking);
-                    Assert.IsTrue(dec_rate.Minimum == dec_rate.Maximum);
-                    Assert.IsTrue(0 < dec_rate.Minimum);
-                    Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(TelescopeAxes.axisPrimary, ra_rate.Minimum + 1 / 3600.0));
-                    Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, dec_rate.Minimum + 1 / 3600.0));
-                    device.MoveAxis(TelescopeAxes.axisPrimary, ra_rate.Minimum);
-                    device.MoveAxis(TelescopeAxes.axisSecondary, dec_rate.Minimum);
-                    Assert.IsTrue(device.Slewing);
-                    device.AbortSlew();
-                    Assert.IsTrue(device.Tracking);
-                    device.MoveAxis(TelescopeAxes.axisPrimary, -ra_rate.Minimum);
-                    device.MoveAxis(TelescopeAxes.axisSecondary, -dec_rate.Minimum);
-                    Assert.IsTrue(device.Slewing);
-                    device.AbortSlew();
-                    Assert.IsTrue(device.Tracking);
-                }
+
+                IRate dec_rate = dec_rates[i];
+                Assert.IsTrue(dec_rate.Minimum == dec_rate.Maximum);
+                Assert.IsTrue(0 < dec_rate.Minimum);
+
+                Assert.IsTrue(device.Tracking);
+                Assert.AreEqual(rates[3], device.CommandString("getCurrentSlewRate", true));
+                Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(TelescopeAxes.axisPrimary, ra_rate.Minimum + 1 / 3600.0));
+                Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, dec_rate.Minimum + 1 / 3600.0));
+
+                device.MoveAxis(TelescopeAxes.axisPrimary, ra_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                device.MoveAxis(TelescopeAxes.axisSecondary, dec_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
+
+                device.AbortSlew();
+                Assert.IsTrue(device.Tracking);
+
+                device.MoveAxis(TelescopeAxes.axisPrimary, -ra_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                device.MoveAxis(TelescopeAxes.axisSecondary, -dec_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
+
+                device.AbortSlew();
+                Assert.IsTrue(device.Tracking);
+                Assert.AreEqual(rates[3], device.CommandString("getCurrentSlewRate", true));
             }
-            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
+
+            // One single rate for both axes
+            device.MoveAxis(TelescopeAxes.axisPrimary, ra_rates[1].Minimum);
+            Assert.IsTrue(device.Slewing);
+            Assert.ThrowsException<ASCOM.InvalidOperationException> (() => device.MoveAxis(TelescopeAxes.axisSecondary, dec_rates[2].Minimum));
+            Assert.IsTrue(device.Slewing);
+            device.AbortSlew();
+            Assert.IsTrue(device.Tracking);
         }
 
         [TestMethod]
@@ -387,6 +412,8 @@ namespace ascom_eq500x_test
         {
             device.Connected = true;
             Assert.IsTrue(device.Connected);
+
+            Assert.AreEqual("SLEW_MAX", device.CommandString("getCurrentSlewRate", true));
 
             // Zero-time pulse guiding: no-op
             foreach (GuideDirections direction in Enum.GetValues(typeof(GuideDirections)))
@@ -414,23 +441,29 @@ namespace ascom_eq500x_test
                 Assert.IsFalse(device.IsPulseGuiding);
             }
 
+            Assert.AreEqual("SLEW_MAX", device.CommandString("getCurrentSlewRate", true));
+
             // Dual-axis pulse guiding, multiple times
             for (int i = 0; i < 5; i++)
             {
                 device.PulseGuide(GuideDirections.guideWest, 500);
+                Assert.AreEqual("SLEW_GUIDE", device.CommandString("getCurrentSlewRate", true));
                 System.Threading.Thread.Sleep(200);
                 device.PulseGuide(GuideDirections.guideNorth, 500);
                 Assert.IsFalse(device.Tracking);
                 Assert.IsFalse(device.Slewing);
                 Assert.IsTrue(device.IsPulseGuiding);
+                Assert.AreEqual("SLEW_GUIDE", device.CommandString("getCurrentSlewRate", true));
                 System.Threading.Thread.Sleep(350);
                 Assert.IsFalse(device.Tracking);
                 Assert.IsFalse(device.Slewing);
                 Assert.IsTrue(device.IsPulseGuiding);
+                Assert.AreEqual("SLEW_GUIDE", device.CommandString("getCurrentSlewRate", true));
                 System.Threading.Thread.Sleep(200);
                 Assert.IsTrue(device.Tracking);
                 Assert.IsFalse(device.Slewing);
                 Assert.IsFalse(device.IsPulseGuiding);
+                Assert.AreEqual("SLEW_MAX", device.CommandString("getCurrentSlewRate", true));
             }
 
             // Duplicate guide command

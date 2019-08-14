@@ -249,6 +249,10 @@ namespace ASCOM.EQ500X
                     {
                         return string.Format("{0}", PollMs);
                     }
+                    else if ("getCurrentSlewRate" == command)
+                    {
+                        return m_SlewRate.ToString();
+                    }
                 }
 
             throw new ASCOM.MethodNotImplementedException(String.Format("CommandString - {0}", command));
@@ -807,7 +811,11 @@ namespace ASCOM.EQ500X
 
                     SlewRate matchingRate = findSlewRate(Axis, Math.Abs(Rate));
 
-                    savedSlewRateIndex = m_SlewRate;
+                    if (TrackState.MOVING == m_TrackState && matchingRate != m_SlewRate)
+                        throw new ASCOM.InvalidOperationException($"MoveAxis - Mount is already moving at {m_SlewRate.ToString()}");
+
+                    if (TrackState.TRACKING == m_TrackState)
+                        savedSlewRateIndex = m_SlewRate;
                     updateSlewRate(matchingRate);
 
                     switch (Axis)
@@ -872,10 +880,11 @@ namespace ASCOM.EQ500X
                     if (dec_complete)
                         m_DECGuideTask = null;
 
-                    updateSlewRate(savedSlewRateIndex);
-
                     if (ra_complete && dec_complete)
+                    {
+                        updateSlewRate(savedSlewRateIndex);
                         m_TrackState = TrackState.TRACKING;
+                    }
                 }
             }
         }
@@ -915,10 +924,9 @@ namespace ASCOM.EQ500X
                     if (0 == Duration)
                         return;
 
-                    savedSlewRateIndex = m_SlewRate;
+                    if (TrackState.TRACKING == m_TrackState)
+                        savedSlewRateIndex = m_SlewRate;
                     updateSlewRate(SlewRate.SLEW_GUIDE);
-
-                    m_TrackState = TrackState.GUIDING;
 
                     switch (Direction)
                     {
@@ -966,6 +974,9 @@ namespace ASCOM.EQ500X
                             updateSlewRate(savedSlewRateIndex);
                             throw new ASCOM.InvalidValueException($"PulseGuide - Invalid direction {Direction.ToString()}");
                     }
+
+                    // Track state can be changed as final instruction because we locked the internals, thus won't get disturbed
+                    m_TrackState = TrackState.GUIDING;
                 }
                 else throw new ASCOM.InvalidOperationException($"PulseGuide - Not tracking");
             }
@@ -1940,26 +1951,26 @@ namespace ASCOM.EQ500X
 
         private void updateSlewRate(SlewRate rate)
         {
-            lock (internalLock)
-            {
-                switch (rate)
+            if (rate != m_SlewRate) lock (internalLock)
                 {
-                    case SlewRate.SLEW_MAX:
-                        sendCmd(":RS#");
-                        break;
-                    case SlewRate.SLEW_FIND:
-                        sendCmd(":RF#");
-                        break;
-                    case SlewRate.SLEW_CENTER:
-                        sendCmd(":RC#");
-                        break;
-                    case SlewRate.SLEW_GUIDE:
-                        sendCmd(":RG#");
-                        break;
-                    default: return;
+                    switch (rate)
+                    {
+                        case SlewRate.SLEW_MAX:
+                            sendCmd(":RS#");
+                            break;
+                        case SlewRate.SLEW_FIND:
+                            sendCmd(":RF#");
+                            break;
+                        case SlewRate.SLEW_CENTER:
+                            sendCmd(":RC#");
+                            break;
+                        case SlewRate.SLEW_GUIDE:
+                            sendCmd(":RG#");
+                            break;
+                        default: return;
+                    }
+                    m_SlewRate = rate;
                 }
-                m_SlewRate = rate;
-            }
         }
         #endregion
 
