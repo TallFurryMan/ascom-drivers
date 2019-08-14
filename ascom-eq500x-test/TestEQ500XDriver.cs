@@ -1,5 +1,6 @@
 ﻿using System;
 using ASCOM.EQ500X;
+using ASCOM.DeviceInterface;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ascom_eq500x_test
@@ -52,11 +53,11 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(0, device.SupportedActions.Count);
 
                 /* Moving */
-                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, 0));
-                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, 0));
-                Assert.IsTrue(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary));
-                Assert.IsTrue(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary));
-                Assert.IsFalse(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisTertiary));
+                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(TelescopeAxes.axisPrimary, 0));
+                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, 0));
+                Assert.IsTrue(device.CanMoveAxis(TelescopeAxes.axisPrimary));
+                Assert.IsTrue(device.CanMoveAxis(TelescopeAxes.axisSecondary));
+                Assert.IsFalse(device.CanMoveAxis(TelescopeAxes.axisTertiary));
 
                 /* Tracking */
                 Assert.IsFalse(device.CanSetDeclinationRate);
@@ -104,14 +105,14 @@ namespace ascom_eq500x_test
                 //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.AtPark);
 
                 /* Guiding */
-                Assert.IsFalse(device.CanPulseGuide);
+                Assert.IsTrue(device.CanPulseGuide);
                 Assert.IsFalse(device.CanSetGuideRates);
-                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.PulseGuide(ASCOM.DeviceInterface.GuideDirections.guideEast, 0));
+                //Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.PulseGuide(GuideDirections.guideEast, 0));
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.GuideRateDeclination);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.GuideRateDeclination = 0);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.GuideRateRightAscension);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.GuideRateRightAscension = 0);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.IsPulseGuiding);
+                //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.IsPulseGuiding);
 
                 /* Optical */
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.ApertureArea);
@@ -184,7 +185,7 @@ namespace ascom_eq500x_test
         public void TestCoordinates()
         {
             /* Coordinates */
-            Assert.AreEqual(ASCOM.DeviceInterface.AlignmentModes.algGermanPolar, device.AlignmentMode);
+            Assert.AreEqual(AlignmentModes.algGermanPolar, device.AlignmentMode);
 
             Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Altitude);
             Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Azimuth);
@@ -339,8 +340,8 @@ namespace ascom_eq500x_test
             // Unsimulated movement causing no M commands, but testing IRates
             device.Connected = true;
             Assert.IsTrue(device.Connected);
-            ASCOM.DeviceInterface.IAxisRates ra_rates = device.AxisRates(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary);
-            ASCOM.DeviceInterface.IAxisRates dec_rates = device.AxisRates(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary);
+            IAxisRates ra_rates = device.AxisRates(TelescopeAxes.axisPrimary);
+            IAxisRates dec_rates = device.AxisRates(TelescopeAxes.axisSecondary);
             Assert.AreEqual(4, ra_rates.Count);
             Assert.AreEqual(5.0 / 3600.0, ra_rates[1].Minimum); // 1-based
             Assert.AreEqual(5.0 / 60.0, ra_rates[2].Minimum);
@@ -351,34 +352,94 @@ namespace ascom_eq500x_test
             Assert.AreEqual(5.0 / 60.0, dec_rates[2].Minimum);
             Assert.AreEqual(20.0 / 60.0, dec_rates[3].Minimum);
             Assert.AreEqual(5.0, dec_rates[4].Minimum);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
-            device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, 0.0);
-            device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, 0.0);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
+            device.MoveAxis(TelescopeAxes.axisPrimary, 0.0);
+            device.MoveAxis(TelescopeAxes.axisSecondary, 0.0);
             Assert.IsTrue(device.Tracking);
-            foreach (ASCOM.DeviceInterface.IRate ra_rate in ra_rates)
+            foreach (IRate ra_rate in ra_rates)
             {
                 Assert.IsTrue(ra_rate.Minimum == ra_rate.Maximum);
                 Assert.IsTrue(0 < ra_rate.Minimum);
-                foreach (ASCOM.DeviceInterface.IRate dec_rate in dec_rates)
+                foreach (IRate dec_rate in dec_rates)
                 {
                     Assert.IsTrue(device.Tracking);
                     Assert.IsTrue(dec_rate.Minimum == dec_rate.Maximum);
                     Assert.IsTrue(0 < dec_rate.Minimum);
-                    Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, ra_rate.Minimum + 1 / 3600.0));
-                    Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, dec_rate.Minimum + 1 / 3600.0));
-                    device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, ra_rate.Minimum);
-                    device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, dec_rate.Minimum);
+                    Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(TelescopeAxes.axisPrimary, ra_rate.Minimum + 1 / 3600.0));
+                    Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, dec_rate.Minimum + 1 / 3600.0));
+                    device.MoveAxis(TelescopeAxes.axisPrimary, ra_rate.Minimum);
+                    device.MoveAxis(TelescopeAxes.axisSecondary, dec_rate.Minimum);
                     Assert.IsTrue(device.Slewing);
                     device.AbortSlew();
                     Assert.IsTrue(device.Tracking);
-                    device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, -ra_rate.Minimum);
-                    device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, -dec_rate.Minimum);
+                    device.MoveAxis(TelescopeAxes.axisPrimary, -ra_rate.Minimum);
+                    device.MoveAxis(TelescopeAxes.axisSecondary, -dec_rate.Minimum);
                     Assert.IsTrue(device.Slewing);
                     device.AbortSlew();
                     Assert.IsTrue(device.Tracking);
                 }
             }
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
+        }
+
+        [TestMethod]
+        public void Test_PulseGuiding()
+        {
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+
+            // Zero-time pulse guiding: no-op
+            foreach (GuideDirections direction in Enum.GetValues(typeof(GuideDirections)))
+            {
+                device.PulseGuide(direction, 0);
+                Assert.IsTrue(device.Tracking);
+                Assert.IsFalse(device.Slewing);
+                Assert.IsFalse(device.IsPulseGuiding);
+            }
+
+            // Single-axis pulse guiding
+            foreach (GuideDirections direction in Enum.GetValues(typeof(GuideDirections)))
+            {
+                device.PulseGuide(direction, 500);
+                Assert.IsFalse(device.Tracking);
+                Assert.IsFalse(device.Slewing);
+                Assert.IsTrue(device.IsPulseGuiding);
+                System.Threading.Thread.Sleep(200);
+                Assert.IsFalse(device.Tracking);
+                Assert.IsFalse(device.Slewing);
+                Assert.IsTrue(device.IsPulseGuiding);
+                System.Threading.Thread.Sleep(350);
+                Assert.IsTrue(device.Tracking);
+                Assert.IsFalse(device.Slewing);
+                Assert.IsFalse(device.IsPulseGuiding);
+            }
+
+            // Dual-axis pulse guiding, multiple times
+            for (int i = 0; i < 5; i++)
+            {
+                device.PulseGuide(GuideDirections.guideWest, 500);
+                System.Threading.Thread.Sleep(200);
+                device.PulseGuide(GuideDirections.guideNorth, 500);
+                Assert.IsFalse(device.Tracking);
+                Assert.IsFalse(device.Slewing);
+                Assert.IsTrue(device.IsPulseGuiding);
+                System.Threading.Thread.Sleep(350);
+                Assert.IsFalse(device.Tracking);
+                Assert.IsFalse(device.Slewing);
+                Assert.IsTrue(device.IsPulseGuiding);
+                System.Threading.Thread.Sleep(200);
+                Assert.IsTrue(device.Tracking);
+                Assert.IsFalse(device.Slewing);
+                Assert.IsFalse(device.IsPulseGuiding);
+            }
+
+            // Duplicate guide command
+            device.PulseGuide(GuideDirections.guideWest, 500);
+            device.PulseGuide(GuideDirections.guideWest, 100);
+            System.Threading.Thread.Sleep(150);
+            Assert.IsTrue(device.Tracking);
+            Assert.IsFalse(device.Slewing);
+            Assert.IsFalse(device.IsPulseGuiding);
         }
 
         [TestMethod]
@@ -386,7 +447,7 @@ namespace ascom_eq500x_test
         {
             device.Connected = true;
             Assert.IsTrue(device.Connected);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
             double target_ra = device.RightAscension, target_dec = device.Declination;
             device.SlewToCoordinatesAsync(target_ra, target_dec);
             Assert.AreEqual(target_ra, device.TargetRightAscension);
@@ -401,7 +462,7 @@ namespace ascom_eq500x_test
                 Assert.IsTrue(device.Slewing);
             }
             Assert.IsTrue(device.Tracking);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
         }
 
         [TestMethod]
@@ -437,7 +498,7 @@ namespace ascom_eq500x_test
         {
             device.Connected = true;
             Assert.IsTrue(device.Connected);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
             Assert.AreEqual(0, device.RightAscension);
             Assert.AreEqual(90, device.Declination);
             double target_ra = 0, target_dec = 80;
@@ -456,7 +517,7 @@ namespace ascom_eq500x_test
                 Assert.IsTrue(device.Slewing);
             }
             Assert.IsTrue(device.Tracking);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
         }
 
         [TestMethod]
@@ -464,7 +525,7 @@ namespace ascom_eq500x_test
         {
             device.Connected = true;
             Assert.IsTrue(device.Connected);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
             Assert.AreEqual(0, device.RightAscension);
             Assert.AreEqual(90, device.Declination);
             double target_ra = 0, target_dec = 100;
@@ -484,7 +545,7 @@ namespace ascom_eq500x_test
                 Assert.IsTrue(device.Slewing);
             }
             Assert.IsTrue(device.Tracking);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
         }
 
         [TestMethod]
@@ -492,7 +553,7 @@ namespace ascom_eq500x_test
         {
             device.Connected = true;
             Assert.IsTrue(device.Connected);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
             Assert.AreEqual(0, device.RightAscension);
             Assert.AreEqual(90, device.Declination);
             double target_ra = +1, target_dec = 90;
@@ -511,7 +572,7 @@ namespace ascom_eq500x_test
                 Assert.IsTrue(device.Slewing);
             }
             Assert.IsTrue(device.Tracking);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierEast, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierEast, device.SideOfPier);
         }
 
         [TestMethod]
@@ -519,7 +580,7 @@ namespace ascom_eq500x_test
         {
             device.Connected = true;
             Assert.IsTrue(device.Connected);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
             Assert.AreEqual(0, device.RightAscension);
             Assert.AreEqual(90, device.Declination);
             double target_ra = -1, target_dec = 90;
@@ -539,7 +600,7 @@ namespace ascom_eq500x_test
                 Assert.IsTrue(device.Slewing);
             }
             Assert.IsTrue(device.Tracking);
-            Assert.AreEqual(ASCOM.DeviceInterface.PierSide.pierWest, device.SideOfPier);
+            Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
         }
     }
 }

@@ -25,10 +25,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Runtime.InteropServices;
-
-using ASCOM;
 using ASCOM.Astrometry;
 using ASCOM.Astrometry.AstroUtils;
 using ASCOM.Utilities;
@@ -39,6 +36,8 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
 using System.Timers;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ASCOM.EQ500X
 {
@@ -547,8 +546,8 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("CanPulseGuide", "Get - " + false.ToString());
-                return false;
+                LogMessage("CanPulseGuide", "Get - " + true.ToString());
+                return true;
             }
         }
 
@@ -778,8 +777,8 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("IsPulseGuiding Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("IsPulseGuiding", false);
+                LogMessage("IsPulseGuiding Get", $"Tracking state is {m_TrackState.ToString()}");
+                return TrackState.GUIDING == m_TrackState;
             }
         }
 
@@ -836,10 +835,140 @@ namespace ASCOM.EQ500X
             throw new ASCOM.MethodNotImplementedException("Park");
         }
 
+        private void completeGuideCommand(GuideDirections direction)
+        {
+            LogMessage("completeGuideCommand", $"Cleaning up {direction}");
+
+            lock (internalLock)
+            {
+                if (TrackState.GUIDING == m_TrackState)
+                {
+                    bool ra_complete = null == m_RAGuideTask || m_RAGuideTask.IsCompleted;
+                    bool dec_complete = null == m_DECGuideTask || m_DECGuideTask.IsCompleted;
+
+                    switch (direction)
+                    {
+                        case GuideDirections.guideWest:
+                            sendCmd(":Qw#");
+                            ra_complete = true;
+                            break;
+                        case GuideDirections.guideEast:
+                            sendCmd(":Qe#");
+                            ra_complete = true;
+                            break;
+                        case GuideDirections.guideSouth:
+                            sendCmd(":Qs#");
+                            dec_complete = true;
+                            break;
+                        case GuideDirections.guideNorth:
+                            sendCmd(":Qn#");
+                            dec_complete = true;
+                            break;
+                    }
+
+                    if (ra_complete)
+                        m_RAGuideTask = null;
+
+                    if (dec_complete)
+                        m_DECGuideTask = null;
+
+                    updateSlewRate(savedSlewRateIndex);
+
+                    if (ra_complete && dec_complete)
+                        m_TrackState = TrackState.TRACKING;
+                }
+            }
+        }
+
         public void PulseGuide(GuideDirections Direction, int Duration)
         {
-            LogMessage("PulseGuide", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("PulseGuide");
+            LogMessage("PulseGuide", $"Guiding in direction {Direction.ToString()} for {Duration}ms");
+
+            switch (Direction)
+            {
+                case GuideDirections.guideWest:
+                case GuideDirections.guideEast:
+                    if (null != m_RAGuideTaskCancellation)
+                        m_RAGuideTaskCancellation.Cancel();
+                    if (null != m_RAGuideTask)
+                        m_RAGuideTask.Wait();
+                    break;
+
+                case GuideDirections.guideSouth:
+                case GuideDirections.guideNorth:
+                    if (null != m_DECGuideTaskCancellation)
+                        m_DECGuideTaskCancellation.Cancel();
+                    if (null != m_DECGuideTask)
+                        m_DECGuideTask.Wait();
+                    break;
+            }
+
+            completeGuideCommand(Direction);
+
+            lock (internalLock)
+            {
+                if (!connectedState)
+                    throw new ASCOM.NotConnectedException("PulseGuide");
+
+                if (TrackState.TRACKING == m_TrackState || TrackState.GUIDING == m_TrackState)
+                {
+                    if (0 == Duration)
+                        return;
+
+                    savedSlewRateIndex = m_SlewRate;
+                    updateSlewRate(SlewRate.SLEW_GUIDE);
+
+                    m_TrackState = TrackState.GUIDING;
+
+                    switch (Direction)
+                    {
+                        case GuideDirections.guideWest:
+                            sendCmd(":Mw#");
+                            m_RAGuideTaskCancellation = new CancellationTokenSource();
+                            m_RAGuideTask = Task.Factory.StartNew(() =>
+                            {
+                                m_RAGuideTaskCancellation.Token.WaitHandle.WaitOne(Duration);
+                                completeGuideCommand(Direction);
+                            });
+                            break;
+
+                        case GuideDirections.guideEast:
+                            sendCmd(":Me#");
+                            m_RAGuideTaskCancellation = new CancellationTokenSource();
+                            m_RAGuideTask = Task.Factory.StartNew(() =>
+                            {
+                                m_RAGuideTaskCancellation.Token.WaitHandle.WaitOne(Duration);
+                                completeGuideCommand(Direction);
+                            });
+                            break;
+
+                        case GuideDirections.guideNorth:
+                            sendCmd(":Mn#");
+                            m_DECGuideTaskCancellation = new CancellationTokenSource();
+                            m_DECGuideTask = Task.Factory.StartNew(() =>
+                            {
+                                m_DECGuideTaskCancellation.Token.WaitHandle.WaitOne(Duration);
+                                completeGuideCommand(Direction);
+                            });
+                            break;
+
+                        case GuideDirections.guideSouth:
+                            sendCmd(":Ms#");
+                            m_DECGuideTaskCancellation = new CancellationTokenSource();
+                            m_DECGuideTask = Task.Factory.StartNew(() =>
+                            {
+                                m_DECGuideTaskCancellation.Token.WaitHandle.WaitOne(Duration);
+                                completeGuideCommand(Direction);
+                            });
+                            break;
+
+                        default:
+                            updateSlewRate(savedSlewRateIndex);
+                            throw new ASCOM.InvalidValueException($"PulseGuide - Invalid direction {Direction.ToString()}");
+                    }
+                }
+                else throw new ASCOM.InvalidOperationException($"PulseGuide - Not tracking");
+            }
         }
 
         public double RightAscension
@@ -1047,7 +1176,7 @@ namespace ASCOM.EQ500X
                     AbortSlew();
 
                     // sleep for 100 mseconds
-                    System.Threading.Thread.Sleep(100);
+                    Thread.Sleep(100);
                 }
 
                 /* The goto feature is quite imprecise because it will always use full speed.
@@ -1096,7 +1225,7 @@ namespace ASCOM.EQ500X
             LogMessage("SlewToCoordinatesAsync", $"Slewing to {RightAscension},{Declination}");
             SlewToCoordinatesAsync(RightAscension, Declination);
             while (!Tracking)
-                System.Threading.Thread.Sleep(250);
+                Thread.Sleep(250);
         }
 
         public void SlewToTarget()
@@ -1104,7 +1233,7 @@ namespace ASCOM.EQ500X
             LogMessage("SlewToTarget", $"Slewing to {TargetRightAscension},{TargetDeclination}");
             SlewToCoordinatesAsync(TargetRightAscension, TargetDeclination);
             while (!Tracking)
-                System.Threading.Thread.Sleep(250);
+                Thread.Sleep(250);
         }
 
         public void SlewToTargetAsync()
@@ -1446,7 +1575,7 @@ namespace ASCOM.EQ500X
         //private TelescopeSlewRate savedSlewRateIndex;
         private int countdown;
 
-        private enum TrackState { TRACKING, SLEWING, MOVING };
+        private enum TrackState { TRACKING, SLEWING, MOVING, GUIDING };
         private TrackState m_TrackState = TrackState.TRACKING;
 
         private enum SlewRate { SLEW_GUIDE, SLEW_CENTER, SLEW_FIND, SLEW_MAX }; // Strict match with IAxisRates
@@ -1458,6 +1587,12 @@ namespace ASCOM.EQ500X
         private static int previous_adjustment = -1;
         private PierSide m_SideOfPier = PierSide.pierWest;
         private object internalLock = new object();
+
+        private Task m_RAGuideTask = null;
+        private Task m_DECGuideTask = null;
+
+        private CancellationTokenSource m_RAGuideTaskCancellation = new CancellationTokenSource();
+        private CancellationTokenSource m_DECGuideTaskCancellation = new CancellationTokenSource();
 
         private bool ReadScopeStatus()
         {
