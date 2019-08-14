@@ -527,8 +527,8 @@ namespace ASCOM.EQ500X
             LogMessage("CanMoveAxis", "Get - " + Axis.ToString());
             switch (Axis)
             {
-                case TelescopeAxes.axisPrimary: return false;
-                case TelescopeAxes.axisSecondary: return false;
+                case TelescopeAxes.axisPrimary: return true;
+                case TelescopeAxes.axisSecondary: return true;
                 case TelescopeAxes.axisTertiary: return false;
                 default: throw new InvalidValueException("CanMoveAxis", Axis.ToString(), "0 to 2");
             }
@@ -638,7 +638,7 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("CanSlewAsync", "Get - " + false.ToString());
-                return false;
+                return true;
             }
         }
 
@@ -798,6 +798,9 @@ namespace ASCOM.EQ500X
             LogMessage("MoveAxis", $"Moving {Axis.ToString()} at {Rate}°/s");
             lock (internalLock)
             {
+                if (!connectedState)
+                    throw new ASCOM.NotConnectedException("MoveAxis");
+
                 if (TrackState.TRACKING == m_TrackState || TrackState.MOVING == m_TrackState)
                 {
                     if (0.0 == Rate)
@@ -930,14 +933,14 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteElevation");
-                LogMessage("SiteElevation Get", String.Format("Elevation $0", location.elevation));
+                LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.elevation));
                 return location.elevation;
             }
             set
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteElevation");
-                LogMessage("SiteElevation Set", String.Format("Set Elevation $0", value));
+                LogMessage("SiteElevation Set", String.Format("Set Elevation {0}", value));
                 location.elevation = value;
             }
         }
@@ -948,14 +951,14 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLatitude");
-                LogMessage("SiteElevation Get", String.Format("Elevation $0", location.latitude));
+                LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.latitude));
                 return location.latitude;
             }
             set
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLatitude");
-                LogMessage("SiteLatitude Set", String.Format("Latitude $0", location.latitude));
+                LogMessage("SiteLatitude Set", String.Format("Latitude {0}", location.latitude));
                 location.latitude = value;
             }
         }
@@ -966,7 +969,7 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLongitude");
-                LogMessage("SiteLongitude Get", String.Format("Elevation $0", location.longitude));
+                LogMessage("SiteLongitude Get", String.Format("Elevation {0}", location.longitude));
                 return location.longitude;
             }
             set
@@ -976,7 +979,7 @@ namespace ASCOM.EQ500X
                     if (!Connected)
                         throw new ASCOM.NotConnectedException("SiteLongitude");
 
-                    LogMessage("SiteLongitude Set", String.Format("Longitude $0", value));
+                    LogMessage("SiteLongitude Set", String.Format("Longitude {0}", value));
                     location.longitude = value;
 
                     if (isSimulated)
@@ -986,7 +989,7 @@ namespace ASCOM.EQ500X
                     {
                         double LST = isSimulated ? simEQ500X.LST : SiderealTime;
                         Sync(LST - 6, currentMechPosition.DECsky);
-                        LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST $0", utilities.HoursToHMS(LST)));
+                        LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST {0}", utilities.HoursToHMS(LST)));
                     }
                 }
             }
@@ -1138,7 +1141,7 @@ namespace ASCOM.EQ500X
 
         public void SyncToCoordinates(double RightAscension, double Declination)
         {
-            LogMessage("SyncToCoordinates", String.Format("Set RA:$0 DEC:$1", RightAscension, Declination));
+            LogMessage("SyncToCoordinates", String.Format("Set RA:{0:F2} DEC:{1:F2}", RightAscension, Declination));
             lock (internalLock)
             {
                 if (!Sync(RightAscension, Declination))
@@ -1433,8 +1436,8 @@ namespace ASCOM.EQ500X
         static readonly IList<_adjustment> adjustments = new ReadOnlyCollection<_adjustment>(new[] {
             new _adjustment(":RG#", 0, 1*ARCSECOND, 0.7*ARCMINUTE,  100 ),   // Guiding speed
             new _adjustment(":RC#", 1, 0.7*ARCMINUTE, 10*ARCMINUTE, 200 ),   // Centering speed
-            new _adjustment(":RM#", 2, 10*ARCMINUTE, 5*ONEDEGREE, 500 ),   // Finding speed
-            new _adjustment(":RS#", 3, 5*ONEDEGREE,  360*ONEDEGREE, 1000 ), // Slew speed
+            new _adjustment(":RM#", 2, 10*ARCMINUTE, 5*ONEDEGREE, 500 ),     // Finding speed
+            new _adjustment(":RS#", 3, 5*ONEDEGREE,  360*ONEDEGREE, 1000 ),  // Slew speed
         });
 
         private int adjustment = -1;
@@ -1495,7 +1498,7 @@ namespace ASCOM.EQ500X
                         p.toStringRA(ref simEQ500X.MechanicalRAStr);
                         p.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
 
-                        LogMessage("ReadScopeStatus", string.Format("New mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2}°,{3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s));
+                        LogMessage("ReadScopeStatus", "New mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2}°,{3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
                     }
                 }
 
@@ -1568,14 +1571,14 @@ namespace ASCOM.EQ500X
                             if (abs_ra_delta <= adjustments[i].distance)
                                 ra_adjust = i;
                         Debug.Assert(-1 != ra_adjust);
-                        LogMessage("ReadScopeStatus", string.Format("RA  {0:F2}-{1:F2} = {2:F2}° under {3:F2}° would require adjustment at {4} until less than {5:F2}°", targetMechPosition.RAm * 15.0, currentMechPosition.RAm * 15.0, ra_delta, adjustments[ra_adjust].distance, adjustments[ra_adjust].slew_rate, Math.Max(adjustments[ra_adjust].epsilon, 15.0 / 3600.0)));
+                        LogMessage("ReadScopeStatus", "RA  {0:F2}-{1:F2} = {2:F2}° under {3:F2}° would require adjustment at {4} until less than {5:F2}°", targetMechPosition.RAm * 15.0, currentMechPosition.RAm * 15.0, ra_delta, adjustments[ra_adjust].distance, adjustments[ra_adjust].slew_rate, Math.Max(adjustments[ra_adjust].epsilon, 15.0 / 3600.0));
 
                         // Choose slew rate for DEC based on distance to target
                         for (int i = 0; i < adjustments.Count && -1 == dec_adjust; i++)
                             if (abs_dec_delta <= adjustments[i].distance)
                                 dec_adjust = i;
                         Debug.Assert(-1 != dec_adjust);
-                        LogMessage("ReadScopeStatus", string.Format("DEC {0:F2}-{1:F2} = {2:F2}° under {3:F2}° would require adjustment at {4} until less than {5:F2}°", targetMechPosition.DECm, currentMechPosition.DECm, dec_delta, adjustments[dec_adjust].distance, adjustments[dec_adjust].slew_rate, adjustments[dec_adjust].epsilon));
+                        LogMessage("ReadScopeStatus", "DEC {0:F2}-{1:F2} = {2:F2}° under {3:F2}° would require adjustment at {4} until less than {5:F2}°", targetMechPosition.DECm, currentMechPosition.DECm, dec_delta, adjustments[dec_adjust].distance, adjustments[dec_adjust].slew_rate, adjustments[dec_adjust].epsilon);
 
                         // This will hold the command string to send to the mount, with move commands
                         String CmdString = "";
@@ -1669,7 +1672,7 @@ namespace ASCOM.EQ500X
                             // Send command to mount
                             if (0 < sendCmd(CmdString))
                             {
-                                LogMessage("ReadScopeStatus", string.Format("Error centering ({0:F2}°,{1:F2}°)", targetMechPosition.RAm * 15.0, targetMechPosition.DECm));
+                                LogMessage("ReadScopeStatus", $"Error centering ({targetMechPosition.RAm * 15.0:F2}°,{targetMechPosition.DECm:F2}°)");
                                 //slewError(-1);
                                 restartReadScopeStatusTimer();
                                 return false;
@@ -1684,7 +1687,7 @@ namespace ASCOM.EQ500X
                         // If all movement flags are cleared, we are done adjusting
                         if (!RAmIncrease && !RAmDecrease && !DECmDecrease && !DECmIncrease)
                         {
-                            LogMessage("ReadScopeStatus", string.Format("Centering delta ({0},{1}) intermediate adjustment complete ({2} loops)", ra_delta, dec_delta, MAX_CONVERGENCE_LOOPS - countdown));
+                            LogMessage("ReadScopeStatus", $"Centering delta ({ra_delta:F2},{dec_delta:F2}) intermediate adjustment complete ({MAX_CONVERGENCE_LOOPS - countdown} loops)");
                             adjustment = -1;
                         }
                         // Else, if it has been too long since we started, maybe we have a convergence problem.
@@ -1692,7 +1695,7 @@ namespace ASCOM.EQ500X
                         // The behavior is improved by changing the slew rate while converging, but is still tricky to tune.
                         else if (--countdown <= 0)
                         {
-                            LogMessage("ReadScopeStatus", "Failed centering to ({0},{1}) under loop limit, aborting...", targetMechPosition.RAm, targetMechPosition.DECm);
+                            LogMessage("ReadScopeStatus", $"Failed centering to ({targetMechPosition.RAm},{targetMechPosition.DECm}) under loop limit, aborting...");
                             goto slew_failure;
                         }
                         // Else adjust poll timeout to adjustment speed and continue
@@ -1790,16 +1793,12 @@ namespace ASCOM.EQ500X
                     if (getCurrentMechanicalPosition(ref currentMechPosition))
                         goto sync_error;
 
-                    //currentRA = currentMechPosition.RAsky;
-                    //currentDEC = currentMechPosition.DECsky;
-                    //NewRaDec(currentRA, currentDEC);
-
-                    LogMessage("Sync", "Mount synced to target RA '$2' DEC '$1'", currentMechPosition.RAsky, currentMechPosition.DECsky);
+                    LogMessage("Sync", $"Mount synced to target RA '{currentMechPosition.RAsky:F2}' DEC '{currentMechPosition.DECsky:F2}'");
                     return true;
                 }
 
             sync_error:
-                LogMessage("Sync", "Mount sync to target RA '$0' DEC '$1' failed", ra, dec);
+                LogMessage("Sync", $"Mount sync to target RA '{ra:F2}' DEC '{dec:F2}' failed");
                 return false;
             }
         }
@@ -1892,8 +1891,8 @@ namespace ASCOM.EQ500X
                 String bufRA = "", bufDEC = "";
 
                 // Write RA/DEC in placeholders
-                String CmdString = String.Format(":Sr$0#:Sd$1#", p.toStringRA(ref bufRA), p.toStringDEC(ref bufDEC));
-                LogMessage("setTargetMechanicalPosition", "Target RA '$0' DEC '$0' converted to '$1'", p.RAm, p.DECm, CmdString);
+                String CmdString = String.Format(":Sr{0}#:Sd{1}#", p.toStringRA(ref bufRA), p.toStringDEC(ref bufDEC));
+                LogMessage("setTargetMechanicalPosition", "Target RA '{0}' DEC '{0}' converted to '{1}'", p.RAm, p.DECm, CmdString);
 
                 String buf = "";
 
@@ -1934,14 +1933,14 @@ namespace ASCOM.EQ500X
             if (!isSimulation())
             {
                 data = m_Port.ReceiveCounted(len);
-                LogMessage("getReply", "<$0>", data);
+                LogMessage("getReply", "<{0}>", data);
             }
             return 0;
         }
 
         private int getCommandString(ref String data, String cmd)
         {
-            LogMessage("getCommandString", "CMD <$0>", cmd);
+            LogMessage("getCommandString", "CMD <{0}>", cmd);
 
             /* Add mutex */
             //std::unique_lock<std::mutex> guard(lx200CommsLock);
@@ -1960,7 +1959,7 @@ namespace ASCOM.EQ500X
             if (m.Success)
                 data = m.Groups[1].Value;
 
-            LogMessage("getCommandString", "RES <$0>", data);
+            LogMessage("getCommandString", "RES <{0}>", data);
 
             return 0;
         }

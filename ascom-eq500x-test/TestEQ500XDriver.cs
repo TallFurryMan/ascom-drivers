@@ -52,10 +52,10 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(0, device.SupportedActions.Count);
 
                 /* Moving */
-                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, 0));
-                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, 0));
-                Assert.IsFalse(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary));
-                Assert.IsFalse(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary));
+                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary, 0));
+                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary, 0));
+                Assert.IsTrue(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisPrimary));
+                Assert.IsTrue(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisSecondary));
                 Assert.IsFalse(device.CanMoveAxis(ASCOM.DeviceInterface.TelescopeAxes.axisTertiary));
 
                 /* Tracking */
@@ -75,7 +75,7 @@ namespace ascom_eq500x_test
                 Assert.IsTrue(device.CanSlew);
                 Assert.IsFalse(device.CanSlewAltAz);
                 Assert.IsFalse(device.CanSlewAltAzAsync);
-                Assert.IsFalse(device.CanSlewAsync);
+                Assert.IsTrue(device.CanSlewAsync);
                 //Assert.ThrowsException<ASCOM.MethodNotImplementedException>(device.AbortSlew);
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SlewToAltAz(0, 0));
                 Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.SlewToAltAzAsync(0, 0));
