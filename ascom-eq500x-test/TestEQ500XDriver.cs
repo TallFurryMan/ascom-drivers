@@ -354,6 +354,8 @@ namespace ascom_eq500x_test
 
             Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.TargetDeclination);
             Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.TargetRightAscension);
+
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.Tracking = true);
         }
 
         [TestMethod]

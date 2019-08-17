@@ -1307,14 +1307,6 @@ namespace ASCOM.EQ500X
                     return m_TrackState == TrackState.SLEWING || m_TrackState == TrackState.MOVING;
                 }
             }
-            internal set
-            {
-                lock (internalLock)
-                {
-                    m_TrackState = value ? TrackState.SLEWING : TrackState.TRACKING;
-                    LogMessage("Slewing", $"Tracking state set to {m_TrackState.ToString()}");
-                }
-            }
         }
 
         public void SyncToAltAz(double Azimuth, double Altitude)
@@ -1389,11 +1381,7 @@ namespace ASCOM.EQ500X
             }
             set
             {
-                lock (internalLock)
-                {
-                    m_TrackState = value ? TrackState.TRACKING : TrackState.SLEWING;
-                    LogMessage("Slewing", $"Tracking state set to {m_TrackState.ToString()}");
-                }
+                throw new ASCOM.InvalidOperationException("Tracking - cannot change tracking state");
             }
         }
 
