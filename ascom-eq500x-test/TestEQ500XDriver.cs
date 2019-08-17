@@ -139,12 +139,13 @@ namespace ascom_eq500x_test
             Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.UTCDate = DateTime.UtcNow);
 
             device.Connected = true;
-            Assert.AreEqual(0, device.SiteElevation);
-            Assert.AreEqual(0, device.SiteLatitude);
-            Assert.AreEqual(0, device.SiteLongitude);
+            //Assert.AreEqual(0, device.SiteElevation);
+            //Assert.AreEqual(0, device.SiteLatitude);
+            //Assert.AreEqual(0, device.SiteLongitude);
             Assert.AreEqual(DateTime.UtcNow.ToLongTimeString(), device.UTCDate.ToLongTimeString());
 
-            for (double h = -1000; h < 4000; h += 10)
+            device.SiteLongitude = 0;
+            for (double h = -300; h < 10000; h += 100)
             {
                 device.SiteElevation = h;
                 for (double lat = -90; lat <= 90; lat += 1)
@@ -332,6 +333,24 @@ namespace ascom_eq500x_test
             Assert.AreEqual(0, device.RightAscension);
             Assert.AreEqual(90, device.Declination);
             Assert.AreEqual(1000, int.Parse(device.CommandString("getReadScopeStatusInterval", true)));
+        }
+
+        [TestMethod]
+        public void Test_InterfaceValidations()
+        {
+            device.Connected = true;
+            Assert.IsTrue(device.Connected);
+
+            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.SiteLongitude);
+            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.SiteLatitude);
+            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.SiteElevation);
+
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLongitude = -181);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLongitude = +181);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLatitude = -91);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLatitude = +91);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteElevation = -301);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteElevation = +10001);
         }
 
         [TestMethod]

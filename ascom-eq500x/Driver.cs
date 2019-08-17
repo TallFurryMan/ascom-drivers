@@ -125,8 +125,11 @@ namespace ASCOM.EQ500X
 
         private class Location
         {
+            internal bool elevation_set = false;
             internal double elevation = 0;
+            internal bool latitude_set = false;
             internal double latitude = 0;
+            internal bool longitude_set = false;
             internal double longitude = 0;
         };
 
@@ -1073,15 +1076,29 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteElevation");
-                LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.elevation));
-                return location.elevation;
+
+                if (location.elevation_set)
+                {
+                    LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.elevation));
+                    return location.elevation;
+                }
+                else throw new ASCOM.ValueNotSetException("SiteElevation - Not initialized");
             }
             set
             {
-                if (!Connected)
-                    throw new ASCOM.NotConnectedException("SiteElevation");
-                LogMessage("SiteElevation Set", String.Format("Set Elevation {0}", value));
-                location.elevation = value;
+                if (-300 <= value && value <= 10000)
+                {
+                    lock (internalLock)
+                    {
+                        if (!Connected)
+                            throw new ASCOM.NotConnectedException("SiteElevation");
+
+                        LogMessage("SiteElevation Set", String.Format("Set Elevation {0}", value));
+                        location.elevation = value;
+                        location.elevation_set = true;
+                    }
+                }
+                else throw new ASCOM.InvalidValueException("SiteElevation", value.ToString(), "-300", "+100000");
             }
         }
 
@@ -1091,15 +1108,29 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLatitude");
-                LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.latitude));
-                return location.latitude;
+
+                if (location.latitude_set)
+                {
+                    LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.latitude));
+                    return location.latitude;
+                }
+                else throw new ASCOM.ValueNotSetException("SiteLatitude - Not initialized");
             }
             set
             {
-                if (!Connected)
-                    throw new ASCOM.NotConnectedException("SiteLatitude");
-                LogMessage("SiteLatitude Set", String.Format("Latitude {0}", location.latitude));
-                location.latitude = value;
+                if (-90 <= value && value <= +90)
+                {
+                    lock (internalLock)
+                    {
+                        if (!Connected)
+                            throw new ASCOM.NotConnectedException("SiteLatitude");
+
+                        LogMessage("SiteLatitude Set", String.Format("Latitude {0}", location.latitude));
+                        location.latitude = value;
+                        location.latitude_set = true;
+                    }
+                }
+                else throw new ASCOM.InvalidValueException("SiteLatitude", value.ToString(), "-90", "+90");
             }
         }
 
@@ -1109,29 +1140,39 @@ namespace ASCOM.EQ500X
             {
                 if (!Connected)
                     throw new ASCOM.NotConnectedException("SiteLongitude");
-                LogMessage("SiteLongitude Get", String.Format("Elevation {0}", location.longitude));
-                return location.longitude;
+
+                if (location.longitude_set)
+                {
+                    LogMessage("SiteLongitude Get", String.Format("Elevation {0}", location.longitude));
+                    return location.longitude;
+                }
+                else throw new ASCOM.ValueNotSetException("SiteLongitude - Not initialized");
             }
             set
             {
-                lock (internalLock)
+                if (-180 <= value && value <= +180)
                 {
-                    if (!Connected)
-                        throw new ASCOM.NotConnectedException("SiteLongitude");
-
-                    LogMessage("SiteLongitude Set", String.Format("Longitude {0}", value));
-                    location.longitude = value;
-
-                    if (isSimulated)
-                        simEQ500X.LST = 0.0 + value / 15.0;
-
-                    if (!getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
+                    lock (internalLock)
                     {
-                        double LST = isSimulated ? simEQ500X.LST : SiderealTime;
-                        Sync(LST - 6, currentMechPosition.DECsky);
-                        LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST {0}", utilities.HoursToHMS(LST)));
+                        if (!Connected)
+                            throw new ASCOM.NotConnectedException("SiteLongitude");
+
+                        LogMessage("SiteLongitude Set", String.Format("Longitude {0}", value));
+                        location.longitude = value;
+                        location.longitude_set = true;
+
+                        if (isSimulated)
+                            simEQ500X.LST = 0.0 + value / 15.0;
+
+                        if (!getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
+                        {
+                            double LST = isSimulated ? simEQ500X.LST : SiderealTime;
+                            Sync(LST - 6, currentMechPosition.DECsky);
+                            LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST {0}", utilities.HoursToHMS(LST)));
+                        }
                     }
                 }
+                else throw new ASCOM.InvalidValueException("SiteLongitude", value.ToString(), "-180", "+180");
             }
         }
 
