@@ -356,6 +356,11 @@ namespace ascom_eq500x_test
             Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.TargetRightAscension);
 
             Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.Tracking = true);
+
+            Assert.AreEqual(DriveRates.driveSidereal, device.TrackingRate);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TrackingRate = DriveRates.driveKing);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TrackingRate = DriveRates.driveLunar);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TrackingRate = DriveRates.driveSolar);
         }
 
         [TestMethod]

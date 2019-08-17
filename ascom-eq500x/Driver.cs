@@ -1389,13 +1389,14 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("TrackingRate Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("TrackingRate", false);
+                LogMessage("TrackingRate Get", $"Get - {DriveRates.driveSidereal.ToString()}");
+                return DriveRates.driveSidereal;
             }
             set
             {
-                LogMessage("TrackingRate Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("TrackingRate", true);
+                LogMessage("TrackingRate Set", $"Set - {value}");
+                if (DriveRates.driveSidereal != value)
+                    throw new ASCOM.InvalidValueException("TrackingRate", value.ToString(), DriveRates.driveSidereal.ToString(), DriveRates.driveSidereal.ToString());
             }
         }
 
