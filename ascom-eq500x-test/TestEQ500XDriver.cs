@@ -351,6 +351,9 @@ namespace ascom_eq500x_test
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLatitude = +91);
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteElevation = -301);
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteElevation = +10001);
+
+            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.TargetDeclination);
+            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.TargetRightAscension);
         }
 
         [TestMethod]

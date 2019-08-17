@@ -107,6 +107,8 @@ namespace ASCOM.EQ500X
         //private double currentDEC;
         private MechanicalPoint currentMechPosition = new MechanicalPoint();
         private MechanicalPoint targetMechPosition = new MechanicalPoint();
+        private bool m_TargetRightAscension_set = false;
+        private bool m_TargetDeclination_set = false;
         private readonly string MechanicalPoint_DEC_FormatR = "+DD:MM:SS";
         private readonly string MechanicalPoint_DEC_FormatW = "+DDD:MM:SS";
         private readonly string MechanicalPoint_RA_Format = "HH:MM:SS";
@@ -1221,6 +1223,7 @@ namespace ASCOM.EQ500X
                 targetMechPosition.PointingState = (0 <= HA && HA < 12) ? MechanicalPoint.PointingStates.POINTING_NORMAL : MechanicalPoint.PointingStates.POINTING_BEYOND_POLE;
                 targetMechPosition.RAsky = ra;
                 targetMechPosition.DECsky = dec;
+                m_TargetRightAscension_set = m_TargetDeclination_set = true;
 
                 // If moving, let's stop it first.
                 if (Slewing)
@@ -1246,8 +1249,8 @@ namespace ASCOM.EQ500X
                 }
                 else
                 {
-                    targetMechPosition.RAsky = /* targetRA = */ ra;
-                    targetMechPosition.DECsky = /* targetDEC = */ dec;
+                    //targetMechPosition.RAsky = /* targetRA = */ ra;
+                    //targetMechPosition.DECsky = /* targetDEC = */ dec;
 
                     LogMessage("SlewToCoordinates", string.Format("Goto target ({0}h,{1:F2}°) HA {2}, LST {3}, quadrant {4}", ra, dec, HA, LST, targetMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole"));
                 }
@@ -1340,13 +1343,18 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("TargetDeclination Get", $"Target DEC {targetMechPosition.DECsky}");
-                return targetMechPosition.DECsky;
+                if (m_TargetDeclination_set)
+                {
+                    LogMessage("TargetDeclination Get", $"Target DEC {targetMechPosition.DECsky}");
+                    return targetMechPosition.DECsky;
+                }
+                else throw new ASCOM.ValueNotSetException("TargetDeclination");
             }
             set
             {
                 LogMessage("TargetDeclination Set", $"Target DEC {value}");
                 targetMechPosition.DECsky = value;
+                m_TargetDeclination_set = true;
             }
         }
 
@@ -1354,13 +1362,18 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("TargetRightAscension Get", $"Target RA {targetMechPosition.RAsky}");
-                return targetMechPosition.RAsky;
+                if (m_TargetRightAscension_set)
+                {
+                    LogMessage("TargetRightAscension Get", $"Target RA {targetMechPosition.RAsky}");
+                    return targetMechPosition.RAsky;
+                }
+                else throw new ASCOM.ValueNotSetException("TargetRightAscension");
             }
             set
             {
                 LogMessage("TargetRightAscension Set", $"Target RA {value}");
                 targetMechPosition.RAsky = value;
+                m_TargetRightAscension_set = true;
             }
         }
 
@@ -1741,6 +1754,8 @@ namespace ASCOM.EQ500X
                 // If we are adjusting, adjust movement and timer time to achieve arcsecond goto precision
                 if (TrackState.SLEWING == m_TrackState && !_gotoEngaged)
                 {
+                    Debug.Assert(m_TargetDeclination_set && m_TargetRightAscension_set);
+
                     // Compute RA/DEC deltas - keep in mind RA is in hours on the mount, with a granularity of 15 degrees
                     double ra_delta = currentMechPosition.RA_degrees_to(targetMechPosition);
                     double dec_delta = currentMechPosition.DEC_degrees_to(targetMechPosition);
@@ -1957,6 +1972,7 @@ namespace ASCOM.EQ500X
             {
                 targetMechPosition.RAsky = ra;
                 targetMechPosition.DECsky = dec;
+                m_TargetRightAscension_set = m_TargetDeclination_set = true;
 
                 if (!setTargetMechanicalPosition(targetMechPosition))
                 {
