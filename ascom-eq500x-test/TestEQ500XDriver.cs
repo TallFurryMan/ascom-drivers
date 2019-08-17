@@ -409,7 +409,9 @@ namespace ascom_eq500x_test
 
                 device.MoveAxis(TelescopeAxes.axisPrimary, ra_rate.Minimum);
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
                 device.MoveAxis(TelescopeAxes.axisSecondary, dec_rate.Minimum);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
                 Assert.IsTrue(device.Slewing);
                 Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
 
@@ -418,8 +420,10 @@ namespace ascom_eq500x_test
 
                 device.MoveAxis(TelescopeAxes.axisPrimary, -ra_rate.Minimum);
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
                 device.MoveAxis(TelescopeAxes.axisSecondary, -dec_rate.Minimum);
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
                 Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
 
                 device.AbortSlew();
@@ -482,11 +486,13 @@ namespace ascom_eq500x_test
                 Assert.IsFalse(device.Tracking);
                 Assert.IsFalse(device.Slewing);
                 Assert.IsTrue(device.IsPulseGuiding);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
                 Assert.AreEqual("SLEW_GUIDE", device.CommandString("getCurrentSlewRate", true));
                 System.Threading.Thread.Sleep(350);
                 Assert.IsFalse(device.Tracking);
                 Assert.IsFalse(device.Slewing);
                 Assert.IsTrue(device.IsPulseGuiding);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
                 Assert.AreEqual("SLEW_GUIDE", device.CommandString("getCurrentSlewRate", true));
                 System.Threading.Thread.Sleep(200);
                 Assert.IsTrue(device.Tracking);
@@ -522,6 +528,7 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(target_dec, device.TargetDeclination);
                 if (device.Tracking) break;
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             }
             Assert.IsTrue(device.Tracking);
             Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
@@ -540,6 +547,7 @@ namespace ascom_eq500x_test
             Assert.AreEqual(target_ra, device.TargetRightAscension);
             Assert.AreEqual(target_dec, device.TargetDeclination);
             Assert.IsTrue(device.Slewing);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             for (int i = 0; i < 4; i++)
             {
                 int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
@@ -548,6 +556,7 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(target_ra, device.TargetRightAscension);
                 Assert.AreEqual(target_dec, device.TargetDeclination);
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             }
             Assert.IsTrue(device.Slewing);
             device.AbortSlew();
@@ -568,6 +577,7 @@ namespace ascom_eq500x_test
             Assert.AreEqual(target_ra, device.TargetRightAscension);
             Assert.AreEqual(target_dec, device.TargetDeclination);
             Assert.IsTrue(device.Slewing);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             for (int i = 0; i < 150; i++)
             {
                 int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
@@ -577,6 +587,7 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(target_dec, device.TargetDeclination);
                 if (device.Tracking) break;
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             }
             Assert.IsTrue(device.Tracking);
             Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
@@ -596,6 +607,7 @@ namespace ascom_eq500x_test
             Assert.AreEqual(target_ra, device.TargetRightAscension);
             Assert.AreEqual(target_dec, device.TargetDeclination);
             Assert.IsTrue(device.Slewing);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             for (int i = 0; i < 150; i++)
             {
                 int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
@@ -605,6 +617,7 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(target_dec, device.TargetDeclination);
                 if (device.Tracking) break;
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             }
             Assert.IsTrue(device.Tracking);
             Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
@@ -623,6 +636,7 @@ namespace ascom_eq500x_test
             Assert.AreEqual(target_ra, device.TargetRightAscension);
             Assert.AreEqual(target_dec, device.TargetDeclination);
             Assert.IsTrue(device.Slewing);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             for (int i = 0; i < 150; i++)
             {
                 int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
@@ -632,6 +646,7 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(target_dec, device.TargetDeclination);
                 if (device.Tracking) break;
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             }
             Assert.IsTrue(device.Tracking);
             Assert.AreEqual(PierSide.pierEast, device.SideOfPier);
@@ -651,6 +666,7 @@ namespace ascom_eq500x_test
             Assert.AreEqual(target_ra, device.TargetRightAscension);
             Assert.AreEqual(target_dec, device.TargetDeclination);
             Assert.IsTrue(device.Slewing);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             for (int i = 0; i < 150; i++)
             {
                 int statusInterval = int.Parse(device.CommandString("getReadScopeStatusInterval", true));
@@ -660,6 +676,7 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(target_dec, device.TargetDeclination);
                 if (device.Tracking) break;
                 Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
             }
             Assert.IsTrue(device.Tracking);
             Assert.AreEqual(PierSide.pierWest, device.SideOfPier);

@@ -1320,6 +1320,9 @@ namespace ASCOM.EQ500X
             LogMessage("SyncToCoordinates", String.Format("Set RA:{0:F2} DEC:{1:F2}", RightAscension, Declination));
             lock (internalLock)
             {
+                if (TrackState.TRACKING != m_TrackState)
+                    throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
+
                 if (!Sync(RightAscension, Declination))
                     throw new ASCOM.DriverException("SyncToCoordinates");
             }
