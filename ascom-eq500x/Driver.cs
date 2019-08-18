@@ -712,7 +712,7 @@ namespace ASCOM.EQ500X
         public PierSide DestinationSideOfPier(double RightAscension, double Declination)
         {
             LogMessage("DestinationSideOfPier Get", "Not implemented");
-            throw new ASCOM.PropertyNotImplementedException("DestinationSideOfPier", false);
+            throw new ASCOM.MethodNotImplementedException("DestinationSideOfPier");
         }
 
         public bool DoesRefraction

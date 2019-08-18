@@ -366,6 +366,8 @@ namespace ascom_eq500x_test
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TrackingRate = DriveRates.driveKing);
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TrackingRate = DriveRates.driveLunar);
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TrackingRate = DriveRates.driveSolar);
+
+            Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.DestinationSideOfPier(0, 0));
         }
 
         [TestMethod]
