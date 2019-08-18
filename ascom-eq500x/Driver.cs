@@ -1341,8 +1341,26 @@ namespace ASCOM.EQ500X
 
         public void SyncToTarget()
         {
-            LogMessage("SyncToTarget", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SyncToTarget");
+            if (!m_TargetRightAscension_set)
+            {
+                throw new ASCOM.ValueNotSetException("SyncToTarget - RightAscension not set");
+            }
+            else if (!m_TargetDeclination_set)
+            {
+                throw new ASCOM.ValueNotSetException("SyncToTarget - Declination not set");
+            }
+            else
+            {
+                LogMessage("SyncToTarget", String.Format("Set RA:{0:F2} DEC:{1:F2}", targetMechPosition.RAsky, targetMechPosition.DECsky));
+                lock (internalLock)
+                {
+                    if (TrackState.TRACKING != m_TrackState)
+                        throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
+
+                    if (!Sync(targetMechPosition.RAsky, targetMechPosition.DECsky))
+                        throw new ASCOM.DriverException("SyncToCoordinates");
+                }
+            }
         }
 
         public double TargetDeclination
