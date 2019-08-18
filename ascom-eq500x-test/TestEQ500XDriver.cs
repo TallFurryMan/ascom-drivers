@@ -233,6 +233,11 @@ namespace ascom_eq500x_test
             Assert.AreEqual(90.0, p.DECsky);
             Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
 
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(-24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(+24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(0, -91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(0, +91));
+
             device.SyncToCoordinates(0, 0);
             Assert.IsFalse(getCurrentMechanicalPosition(ref p));
             Assert.AreEqual(0.0, p.RAm);

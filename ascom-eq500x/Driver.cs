@@ -1971,47 +1971,60 @@ namespace ASCOM.EQ500X
 
         private bool Sync(double ra, double dec)
         {
-            lock (internalLock)
+            if (ra < -24 || +24 < ra)
             {
-                targetMechPosition.RAsky = ra;
-                targetMechPosition.DECsky = dec;
-                m_TargetRightAscension_set = m_TargetDeclination_set = true;
-
-                if (!setTargetMechanicalPosition(targetMechPosition))
+                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - RightAscension", ra.ToString(), "24-", "+24");
+            }
+            else if (dec < -90 || +90 < dec)
+            {
+                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - Declination", dec.ToString(), "-90", "+90");
+            }
+            else
+            {
+                lock (internalLock)
                 {
-                    if (!isSimulation())
+                    targetMechPosition.RAsky = ra;
+                    targetMechPosition.DECsky = dec;
+                    m_TargetRightAscension_set = m_TargetDeclination_set = true;
+
+                    if (!setTargetMechanicalPosition(targetMechPosition))
                     {
-                        String b = "";
+                        if (!isSimulation())
+                        {
+                            String b = "";
 
-                        if (getCommandString(ref b, ":CM#") < 0)
+                            if (getCommandString(ref b, ":CM#") < 0)
+                                goto sync_error;
+                            if ("No name" == b)
+                                goto sync_error;
+                        }
+                        else
+                        {
+                            targetMechPosition.toStringRA(ref simEQ500X.MechanicalRAStr);
+                            targetMechPosition.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
+                            simEQ500X.MechanicalRA = targetMechPosition.RAm;
+                            simEQ500X.MechanicalDEC = targetMechPosition.DECm;
+                        }
+
+                        if (getCurrentMechanicalPosition(ref currentMechPosition))
                             goto sync_error;
-                        if ("No name" == b)
-                            goto sync_error;
-                    }
-                    else
-                    {
-                        targetMechPosition.toStringRA(ref simEQ500X.MechanicalRAStr);
-                        targetMechPosition.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
-                        simEQ500X.MechanicalRA = targetMechPosition.RAm;
-                        simEQ500X.MechanicalDEC = targetMechPosition.DECm;
+
+                        LogMessage("Sync", $"Mount synced to target RA '{currentMechPosition.RAsky:F2}' DEC '{currentMechPosition.DECsky:F2}'");
+                        return true;
                     }
 
-                    if (getCurrentMechanicalPosition(ref currentMechPosition))
-                        goto sync_error;
-
-                    LogMessage("Sync", $"Mount synced to target RA '{currentMechPosition.RAsky:F2}' DEC '{currentMechPosition.DECsky:F2}'");
-                    return true;
+                sync_error:
+                    LogMessage("Sync", $"Mount sync to target RA '{ra:F2}' DEC '{dec:F2}' failed");
+                    return false;
                 }
-
-            sync_error:
-                LogMessage("Sync", $"Mount sync to target RA '{ra:F2}' DEC '{dec:F2}' failed");
-                return false;
             }
         }
 
         private void updateSlewRate(SlewRate rate)
         {
-            if (rate != m_SlewRate) lock (internalLock)
+            if (rate != m_SlewRate)
+            {
+                lock (internalLock)
                 {
                     switch (rate)
                     {
@@ -2031,6 +2044,7 @@ namespace ASCOM.EQ500X
                     }
                     m_SlewRate = rate;
                 }
+            }
         }
         #endregion
 
