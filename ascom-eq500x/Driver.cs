@@ -1206,72 +1206,83 @@ namespace ASCOM.EQ500X
 
         public void SlewToCoordinatesAsync(double ra, double dec)
         {
-            lock (internalLock)
+            if (ra < -24 || +24 < ra)
             {
-                LogMessage("SlewToCoordinates", $"Slewing to {ra} {dec}");
-
-                if (!Connected)
-                    throw new ASCOM.NotConnectedException("SlewToCoordinates");
-
-                // Check whether a meridian flip is required
-                double LST = isSimulated ? simEQ500X.LST : SiderealTime;
-                double HA = LST - ra;
-                while (+12 <= HA) HA -= 24;
-                while (HA <= -12) HA += 24;
-
-                // Deduce required orientation of mount in HA quadrants - set orientation BEFORE coordinates!
-                targetMechPosition.PointingState = (0 <= HA && HA < 12) ? MechanicalPoint.PointingStates.POINTING_NORMAL : MechanicalPoint.PointingStates.POINTING_BEYOND_POLE;
-                targetMechPosition.RAsky = ra;
-                targetMechPosition.DECsky = dec;
-                m_TargetRightAscension_set = m_TargetDeclination_set = true;
-
-                // If moving, let's stop it first.
-                if (Slewing)
+                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - RightAscension", ra.ToString(), "24-", "+24");
+            }
+            else if (dec < -90 || +90 < dec)
+            {
+                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - Declination", dec.ToString(), "-90", "+90");
+            }
+            else
+            {
+                lock (internalLock)
                 {
-                    AbortSlew();
+                    LogMessage("SlewToCoordinates", $"Slewing to {ra} {dec}");
 
-                    // sleep for 100 mseconds
-                    Thread.Sleep(100);
+                    if (!Connected)
+                        throw new ASCOM.NotConnectedException("SlewToCoordinates");
+
+                    // Check whether a meridian flip is required
+                    double LST = isSimulated ? simEQ500X.LST : SiderealTime;
+                    double HA = LST - ra;
+                    while (+12 <= HA) HA -= 24;
+                    while (HA <= -12) HA += 24;
+
+                    // Deduce required orientation of mount in HA quadrants - set orientation BEFORE coordinates!
+                    targetMechPosition.PointingState = (0 <= HA && HA < 12) ? MechanicalPoint.PointingStates.POINTING_NORMAL : MechanicalPoint.PointingStates.POINTING_BEYOND_POLE;
+                    targetMechPosition.RAsky = ra;
+                    targetMechPosition.DECsky = dec;
+                    m_TargetRightAscension_set = m_TargetDeclination_set = true;
+
+                    // If moving, let's stop it first.
+                    if (Slewing)
+                    {
+                        AbortSlew();
+
+                        // sleep for 100 mseconds
+                        Thread.Sleep(100);
+                    }
+
+                    /* The goto feature is quite imprecise because it will always use full speed.
+                     * By the time the mount stops, the position is off by 0-5 degrees, depending on the speed attained during the move.
+                     * Additionally, a firmware limitation prevents the goto feature from slewing to close coordinates, and will cause uneeded axis rotation.
+                     * Therefore, don't use the goto feature for a goto, and let ReadScope adjust the position by itself.
+                     */
+
+                    // Set target position and adjust
+                    if (setTargetMechanicalPosition(targetMechPosition))
+                    {
+                        //EqNP.s = IPS_ALERT;
+                        //IDSetNumber(&EqNP, "Error setting RA/DEC.");
+                        return;// false;
+                    }
+                    else
+                    {
+                        //targetMechPosition.RAsky = /* targetRA = */ ra;
+                        //targetMechPosition.DECsky = /* targetDEC = */ dec;
+
+                        LogMessage("SlewToCoordinates", string.Format("Goto target ({0}h,{1:F2}°) HA {2}, LST {3}, quadrant {4}", ra, dec, HA, LST, targetMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole"));
+                    }
+
+                    // Limit the number of loops
+                    countdown = MAX_CONVERGENCE_LOOPS;
+
+                    // Reset original adjustment
+                    // Reset movement markers
+
+                    m_TrackState = TrackState.SLEWING;
+
+                    // Remember current slew rate
+                    savedSlewRateIndex = m_SlewRate;// static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
+
+                    // Format RA/DEC for logs
+                    //    char RAStr[16] = { 0 }, DecStr[16] = { 0 };
+                    //fs_sexa(RAStr, targetRA, 2, 3600);
+                    //fs_sexa(DecStr, targetDEC, 2, 3600);
+
+                    //LogMessage("SlewToCoordinates", $"Slewing to JNow RA: {RAStr} - DEC: {DecStr}");
                 }
-
-                /* The goto feature is quite imprecise because it will always use full speed.
-                 * By the time the mount stops, the position is off by 0-5 degrees, depending on the speed attained during the move.
-                 * Additionally, a firmware limitation prevents the goto feature from slewing to close coordinates, and will cause uneeded axis rotation.
-                 * Therefore, don't use the goto feature for a goto, and let ReadScope adjust the position by itself.
-                 */
-
-                // Set target position and adjust
-                if (setTargetMechanicalPosition(targetMechPosition))
-                {
-                    //EqNP.s = IPS_ALERT;
-                    //IDSetNumber(&EqNP, "Error setting RA/DEC.");
-                    return;// false;
-                }
-                else
-                {
-                    //targetMechPosition.RAsky = /* targetRA = */ ra;
-                    //targetMechPosition.DECsky = /* targetDEC = */ dec;
-
-                    LogMessage("SlewToCoordinates", string.Format("Goto target ({0}h,{1:F2}°) HA {2}, LST {3}, quadrant {4}", ra, dec, HA, LST, targetMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole"));
-                }
-
-                // Limit the number of loops
-                countdown = MAX_CONVERGENCE_LOOPS;
-
-                // Reset original adjustment
-                // Reset movement markers
-
-                m_TrackState = TrackState.SLEWING;
-
-                // Remember current slew rate
-                savedSlewRateIndex = m_SlewRate;// static_cast <enum TelescopeSlewRate> (IUFindOnSwitchIndex(&SlewRateSP));
-
-                // Format RA/DEC for logs
-                //    char RAStr[16] = { 0 }, DecStr[16] = { 0 };
-                //fs_sexa(RAStr, targetRA, 2, 3600);
-                //fs_sexa(DecStr, targetDEC, 2, 3600);
-
-                //LogMessage("SlewToCoordinates", $"Slewing to JNow RA: {RAStr} - DEC: {DecStr}");
             }
         }
 

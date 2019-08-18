@@ -532,6 +532,15 @@ namespace ascom_eq500x_test
             }
             Assert.IsTrue(device.Tracking);
             Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
+
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(-24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(+24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(0, -91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(0, +91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(-24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(+24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(0, -91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(0, +91));
         }
 
         [TestMethod]
