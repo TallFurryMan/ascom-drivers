@@ -1084,7 +1084,7 @@ namespace ASCOM.EQ500X
                     LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.elevation));
                     return location.elevation;
                 }
-                else throw new ASCOM.ValueNotSetException("SiteElevation - Not initialized");
+                else throw new ASCOM.InvalidOperationException("SiteElevation - Not initialized");
             }
             set
             {
@@ -1116,7 +1116,7 @@ namespace ASCOM.EQ500X
                     LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.latitude));
                     return location.latitude;
                 }
-                else throw new ASCOM.ValueNotSetException("SiteLatitude - Not initialized");
+                else throw new ASCOM.InvalidOperationException("SiteLatitude - Not initialized");
             }
             set
             {
@@ -1148,7 +1148,7 @@ namespace ASCOM.EQ500X
                     LogMessage("SiteLongitude Get", String.Format("Elevation {0}", location.longitude));
                     return location.longitude;
                 }
-                else throw new ASCOM.ValueNotSetException("SiteLongitude - Not initialized");
+                else throw new ASCOM.InvalidOperationException("SiteLongitude - Not initialized");
             }
             set
             {

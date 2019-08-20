@@ -139,9 +139,10 @@ namespace ascom_eq500x_test
             Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.UTCDate = DateTime.UtcNow);
 
             device.Connected = true;
-            //Assert.AreEqual(0, device.SiteElevation);
-            //Assert.AreEqual(0, device.SiteLatitude);
-            //Assert.AreEqual(0, device.SiteLongitude);
+            Assert.IsTrue(device.Connected);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteElevation);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLatitude);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLongitude);
             Assert.AreEqual(DateTime.UtcNow.ToLongTimeString(), device.UTCDate.ToLongTimeString());
 
             device.SiteLongitude = 0;
@@ -404,9 +405,9 @@ namespace ascom_eq500x_test
             device.Connected = true;
             Assert.IsTrue(device.Connected);
 
-            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.SiteLongitude);
-            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.SiteLatitude);
-            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.SiteElevation);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLongitude);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLatitude);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteElevation);
 
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLongitude = -181);
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLongitude = +181);
