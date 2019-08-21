@@ -1428,7 +1428,7 @@ namespace ASCOM.EQ500X
             }
             set
             {
-                throw new ASCOM.InvalidOperationException("Tracking - cannot change tracking state");
+                throw new ASCOM.PropertyNotImplementedException("Tracking - cannot change tracking state");
             }
         }
 

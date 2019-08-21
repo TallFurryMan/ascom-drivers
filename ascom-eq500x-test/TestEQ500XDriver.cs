@@ -427,7 +427,7 @@ namespace ascom_eq500x_test
             Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.TargetDeclination);
             Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.TargetRightAscension);
 
-            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.Tracking = true);
+            Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Tracking = true);
 
             Assert.AreEqual(DriveRates.driveSidereal, device.TrackingRate);
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TrackingRate = DriveRates.driveKing);
