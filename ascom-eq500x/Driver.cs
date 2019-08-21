@@ -806,8 +806,6 @@ namespace ASCOM.EQ500X
             LogMessage("MoveAxis", $"Moving {Axis.ToString()} at {Rate}°/s");
             lock (internalLock)
             {
-                CheckConnected("MoveAxis requires hardware connection");
-
                 if (TrackState.TRACKING == m_TrackState || TrackState.MOVING == m_TrackState)
                 {
                     if (0.0 == Rate)
@@ -842,6 +840,8 @@ namespace ASCOM.EQ500X
 
                     if (TrackState.MOVING == m_TrackState && matchingRate != m_SlewRate)
                         throw new ASCOM.InvalidOperationException($"MoveAxis - Mount is already moving at {m_SlewRate.ToString()}");
+
+                    CheckConnected("MoveAxis requires hardware connection");
 
                     if (TrackState.TRACKING == m_TrackState)
                         savedSlewRateIndex = m_SlewRate;
@@ -947,12 +947,12 @@ namespace ASCOM.EQ500X
 
             lock (internalLock)
             {
-                CheckConnected("PulseGuide requires hardware connection");
-
                 if (TrackState.TRACKING == m_TrackState || TrackState.GUIDING == m_TrackState)
                 {
                     if (0 == Duration)
                         return;
+
+                    CheckConnected("PulseGuide requires hardware connection");
 
                     if (TrackState.TRACKING == m_TrackState)
                         savedSlewRateIndex = m_SlewRate;
