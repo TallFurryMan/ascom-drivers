@@ -1372,7 +1372,7 @@ namespace ASCOM.EQ500X
                     LogMessage("TargetDeclination Get", $"Target DEC {targetMechPosition.DECsky}");
                     return targetMechPosition.DECsky;
                 }
-                else throw new ASCOM.ValueNotSetException("TargetDeclination");
+                else throw new ASCOM.InvalidOperationException("TargetDeclination - not set");
             }
             set
             {
@@ -1391,7 +1391,7 @@ namespace ASCOM.EQ500X
                     LogMessage("TargetRightAscension Get", $"Target RA {targetMechPosition.RAsky}");
                     return targetMechPosition.RAsky;
                 }
-                else throw new ASCOM.ValueNotSetException("TargetRightAscension");
+                else throw new ASCOM.InvalidOperationException("TargetRightAscension - not set");
             }
             set
             {
@@ -1719,7 +1719,7 @@ namespace ASCOM.EQ500X
                         p.toStringRA(ref simEQ500X.MechanicalRAStr);
                         p.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
 
-                        LogMessage("ReadScopeStatus", "New mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2}°,{3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
+                        LogMessage("ReadScopeStatus", "New mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2:F3}°,{3:F3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
                     }
                 }
 

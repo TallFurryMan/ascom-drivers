@@ -169,6 +169,22 @@ namespace ascom_eq500x_test
         [TestMethod]
         public void Test_Stability_DEC_Conversions()
         {
+            // Specific test under one degree for positive and negative values of mechanical position
+            {
+                MechanicalPoint mp = new MechanicalPoint(0, -0.87);
+                Assert.AreEqual(-0.87, mp.DECm);
+                String s = "";
+                Assert.AreEqual("-000:52:12", mp.toStringDEC(ref s));
+                Assert.AreEqual("-00:52:12", mp.toStringDEC_Sim(ref s));
+            }
+            {
+                MechanicalPoint mp = new MechanicalPoint(0, +0.87);
+                Assert.AreEqual(+0.87, mp.DECm);
+                String s = "";
+                Assert.AreEqual("+000:52:12", mp.toStringDEC(ref s));
+                Assert.AreEqual("+00:52:12", mp.toStringDEC_Sim(ref s));
+            }
+
             // Doesn't test outside of -90,+90 but another test does roughly
             MechanicalPoint.PointingStates[] sides = { MechanicalPoint.PointingStates.POINTING_NORMAL, MechanicalPoint.PointingStates.POINTING_BEYOND_POLE };
             for (int ps = 0; ps < sides.Length; ps++)
@@ -197,6 +213,9 @@ namespace ascom_eq500x_test
                             }
 
                             Assert.AreEqual(b, c[0] + c.Substring(2));
+
+                            Assert.IsTrue(0 <= p.RAm && p.RAm <= +24);
+                            Assert.IsTrue(-256 <= p.DECm && p.DECm <= 256);
                         }
                     }
                 }
@@ -480,12 +499,12 @@ namespace ascom_eq500x_test
             Assert.IsFalse(p.parseStringDEC("-00:00:01"));
             Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_BEYOND_POLE, p.PointingState);
             Assert.IsTrue(Math.Abs(p.DECm - (-1 / 3600.0)) <= (1 / 3600.0));
-            Assert.AreEqual("+000:00:01", p.toStringDEC(ref b));
+            Assert.AreEqual("-000:00:01", p.toStringDEC(ref b));
             Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_BEYOND_POLE, p.PointingState);
             Assert.IsFalse(p.parseStringDEC("-00:01:00"));
             Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_BEYOND_POLE, p.PointingState);
             Assert.IsTrue(Math.Abs(p.DECm - (-1 / 60.0)) <= (1 / 3600.0));
-            Assert.AreEqual("+000:01:00", p.toStringDEC(ref b));
+            Assert.AreEqual("-000:01:00", p.toStringDEC(ref b));
             Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_BEYOND_POLE, p.PointingState);
 
             // Negative tests

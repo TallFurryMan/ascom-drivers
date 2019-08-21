@@ -69,8 +69,8 @@ namespace ascom_eq500x_test
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.RightAscensionRate = 0);
                 //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Tracking);
                 //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Tracking = false);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.TrackingRate);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.TrackingRate = 0);
+                //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.TrackingRate);
+                //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.TrackingRate = DriveRates.driveSidereal);
 
                 /* Slewing */
                 Assert.IsTrue(device.CanSlew);
@@ -85,7 +85,7 @@ namespace ascom_eq500x_test
                 //Assert.ThrowsException<ASCOM.MethodNotImplementedException>(device.SlewToTarget);
                 //Assert.ThrowsException<ASCOM.MethodNotImplementedException>(device.SlewToTargetAsync);
                 //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Slewing);
-                Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.DestinationSideOfPier(0, 0));
+                Assert.ThrowsException<ASCOM.MethodNotImplementedException>(() => device.DestinationSideOfPier(0, 0));
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SlewSettleTime);
                 Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SlewSettleTime = 0);
                 //Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.TargetDeclination);
@@ -416,8 +416,8 @@ namespace ascom_eq500x_test
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteElevation = -301);
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteElevation = +10001);
 
-            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.TargetDeclination);
-            Assert.ThrowsException<ASCOM.ValueNotSetException>(() => device.TargetRightAscension);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.TargetDeclination);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.TargetRightAscension);
 
             Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.Tracking = true);
 
@@ -676,9 +676,9 @@ namespace ascom_eq500x_test
             Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
             Assert.AreEqual(0, device.RightAscension);
             Assert.AreEqual(90, device.Declination);
-            double target_ra = 0, target_dec = 100;
+            device.SyncToCoordinates(0, 80);
+            double target_ra = 0, target_dec = 90;
             device.SlewToCoordinatesAsync(target_ra, target_dec);
-            target_dec = -80; // 100 on other side
             Assert.AreEqual(target_ra, device.TargetRightAscension);
             Assert.AreEqual(target_dec, device.TargetDeclination);
             Assert.IsTrue(device.Slewing);

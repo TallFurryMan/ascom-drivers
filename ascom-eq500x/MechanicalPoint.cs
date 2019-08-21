@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -47,6 +48,7 @@ namespace ASCOM.EQ500X
             set
             {
                 _RAm = (long)Math.Round(((value + 24.0) % 24.0) * 3600.0, MidpointRounding.AwayFromZero);
+                Debug.Assert(0 <= _RAm && _RAm <= 24 * 3600);
             }
         }
         public double DECm
@@ -215,14 +217,15 @@ namespace ASCOM.EQ500X
         {
             // See /test/test_eq500xdriver.cpp for description of DEC conversion
 
-            int degrees = (int)(_DECm / 3600) % 256;
+            char sign = _DECm < 0 ? '-' : '+';
+            int degrees = (int)(Math.Abs(_DECm) / 3600) % 256;
             int minutes = (int)(Math.Abs(_DECm) / 60) % 60;
             int seconds = (int)(Math.Abs(_DECm)) % 60;
 
             if (degrees < -255 || +255 < degrees)
                 return null;
 
-            return s = $"{degrees:+000;-000;+000}:{minutes:00}:{seconds:00}";
+            return s = $"{sign}{degrees:000}:{minutes:00}:{seconds:00}";
         }
         public String toStringRA(ref String s)
         {
@@ -240,7 +243,8 @@ namespace ASCOM.EQ500X
         {
             // See /test/test_eq500xdriver.cpp for description of DEC conversion
 
-            int degrees = (int)(_DECm / 3600) % 256;
+            char sign = _DECm < 0 ? '-' : '+';
+            int degrees = (int)(Math.Abs(_DECm) / 3600) % 256;
             int minutes = (int)(Math.Abs(_DECm) / 60) % 60;
             int seconds = (int)(Math.Abs(_DECm)) % 60;
 
@@ -275,7 +279,7 @@ namespace ASCOM.EQ500X
 
             char low_digit = (char)((int)'0' + (Math.Abs(degrees) % 10));
 
-            return s = String.Format("{0}{1}{2}:{3:D2}:{4:D2}", (0 <= degrees) ? '+' : '-', high_digit, low_digit, minutes, seconds);
+            return s = String.Format("{0}{1}{2}:{3:D2}:{4:D2}", sign, high_digit, low_digit, minutes, seconds);
         }
 
         public double RA_degrees_to(MechanicalPoint b)
