@@ -234,7 +234,7 @@ namespace ascom_eq500x_test
             Assert.AreEqual(90.0, p.DECsky);
             Assert.AreEqual(MechanicalPoint.PointingStates.POINTING_NORMAL, p.PointingState);
 
-            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(-24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(-0.1, 0));
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(+24.1, 0));
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(0, -91));
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SyncToCoordinates(0, +91));
@@ -659,8 +659,35 @@ namespace ascom_eq500x_test
         [TestMethod]
         public void Test_Goto_NoMovement()
         {
+            Assert.IsFalse(device.Connected);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(-0.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(+24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(0, -91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(0, +91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(-0.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(+24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(0, -91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(0, +91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TargetRightAscension = -0.1);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TargetRightAscension = +24.1);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TargetDeclination = -91);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TargetDeclination = +91);
+
             device.Connected = true;
             Assert.IsTrue(device.Connected);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(-0.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(+24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(0, -91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinates(0, +91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(-0.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(+24.1, 0));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(0, -91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SlewToCoordinatesAsync(0, +91));
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TargetRightAscension = -0.1);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TargetRightAscension = +24.1);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TargetDeclination = -91);
+            Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.TargetDeclination = +91);
+
             Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
             double target_ra = device.RightAscension, target_dec = device.Declination;
             device.SlewToCoordinatesAsync(target_ra, target_dec);

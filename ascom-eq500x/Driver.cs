@@ -1222,9 +1222,9 @@ namespace ASCOM.EQ500X
 
         public void SlewToCoordinatesAsync(double ra, double dec)
         {
-            if (ra < -24 || +24 < ra)
+            if (ra < 0 || +24 < ra)
             {
-                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - RightAscension", ra.ToString(), "24-", "+24");
+                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - RightAscension", ra.ToString(), "-24", "+24");
             }
             else if (dec < -90 || +90 < dec)
             {
@@ -1234,7 +1234,7 @@ namespace ASCOM.EQ500X
             {
                 lock (internalLock)
                 {
-                    LogMessage("SlewToCoordinates", $"Slewing to {ra} {dec}");
+                    LogMessage("SlewToCoordinatesAsync", $"Slewing to {ra} {dec}");
 
                     CheckConnected("SlewToCoordinates/Async require hardware connection");
 
@@ -1277,7 +1277,7 @@ namespace ASCOM.EQ500X
                         //targetMechPosition.RAsky = /* targetRA = */ ra;
                         //targetMechPosition.DECsky = /* targetDEC = */ dec;
 
-                        LogMessage("SlewToCoordinates", string.Format("Goto target ({0}h,{1:F2}°) HA {2}, LST {3}, quadrant {4}", ra, dec, HA, LST, targetMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole"));
+                        LogMessage("SlewToCoordinatesAsync", string.Format("Goto target ({0}h,{1:F2}°) HA {2}, LST {3}, quadrant {4}", ra, dec, HA, LST, targetMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole"));
                     }
 
                     // Limit the number of loops
@@ -1303,7 +1303,7 @@ namespace ASCOM.EQ500X
 
         public void SlewToCoordinates(double RightAscension, double Declination)
         {
-            LogMessage("SlewToCoordinatesAsync", $"Slewing to {RightAscension},{Declination}");
+            LogMessage("SlewToCoordinates", $"Slewing to {RightAscension},{Declination}");
             SlewToCoordinatesAsync(RightAscension, Declination);
             while (!Tracking)
                 Thread.Sleep(250);
@@ -1343,14 +1343,25 @@ namespace ASCOM.EQ500X
 
         public void SyncToCoordinates(double RightAscension, double Declination)
         {
-            LogMessage("SyncToCoordinates", String.Format("Set RA:{0:F2} DEC:{1:F2}", RightAscension, Declination));
-            lock (internalLock)
+            if (RightAscension < 0 || +24 < RightAscension)
             {
-                if (TrackState.TRACKING != m_TrackState)
-                    throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
+                throw new ASCOM.InvalidValueException("SyncToCoordinates - RightAscension", RightAscension.ToString(), "-24", "+24");
+            }
+            else if (Declination < -90 || +90 < Declination)
+            {
+                throw new ASCOM.InvalidValueException("SyncToCoordinates - Declination", Declination.ToString(), "-90", "+90");
+            }
+            else
+            {
+                LogMessage("SyncToCoordinates", String.Format("Set RA:{0:F2} DEC:{1:F2}", RightAscension, Declination));
+                lock (internalLock)
+                {
+                    if (TrackState.TRACKING != m_TrackState)
+                        throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
 
-                if (!Sync(RightAscension, Declination))
-                    throw new ASCOM.DriverException("SyncToCoordinates");
+                    if (!Sync(RightAscension, Declination))
+                        throw new ASCOM.DriverException("SyncToCoordinates");
+                }
             }
         }
 
@@ -1391,6 +1402,9 @@ namespace ASCOM.EQ500X
             }
             set
             {
+                if (value < -90 || +90 < value)
+                    throw new ASCOM.InvalidValueException("TargetDeclination", Declination.ToString(), "-90", "+90");
+
                 LogMessage("TargetDeclination Set", $"Target DEC {value}");
                 targetMechPosition.DECsky = value;
                 m_TargetDeclination_set = true;
@@ -1410,6 +1424,9 @@ namespace ASCOM.EQ500X
             }
             set
             {
+                if (value < 0 || +24 < value)
+                    throw new ASCOM.InvalidValueException("TargetRightAscension", RightAscension.ToString(), "-24", "+24");
+
                 LogMessage("TargetRightAscension Set", $"Target RA {value}");
                 targetMechPosition.RAsky = value;
                 m_TargetRightAscension_set = true;
