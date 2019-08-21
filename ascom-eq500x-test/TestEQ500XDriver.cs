@@ -476,8 +476,24 @@ namespace ascom_eq500x_test
                 device.MoveAxis(TelescopeAxes.axisPrimary, ra_rate.Minimum);
                 Assert.IsTrue(device.Slewing);
                 Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                for (int j = 1; j < ra_rates.Count + 1; j++)
+                {
+                    if (i != j)
+                    {
+                        Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.MoveAxis(TelescopeAxes.axisPrimary, ra_rates[((i - 1 + 1) % ra_rates.Count) + 1].Minimum));
+                        Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, ra_rates[((i - 1 + 1) % ra_rates.Count) + 1].Minimum));
+                    }
+                }
                 device.MoveAxis(TelescopeAxes.axisSecondary, dec_rate.Minimum);
                 Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                for (int j = 1; j < ra_rates.Count + 1; j++)
+                {
+                    if (i != j)
+                    {
+                        Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.MoveAxis(TelescopeAxes.axisPrimary, ra_rates[((i - 1 + 1) % ra_rates.Count) + 1].Minimum));
+                        Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, ra_rates[((i - 1 + 1) % ra_rates.Count) + 1].Minimum));
+                    }
+                }
                 Assert.IsTrue(device.Slewing);
                 Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
 
@@ -495,12 +511,68 @@ namespace ascom_eq500x_test
                 device.AbortSlew();
                 Assert.IsTrue(device.Tracking);
                 Assert.AreEqual(rates[3], device.CommandString("getCurrentSlewRate", true));
+
+                device.MoveAxis(TelescopeAxes.axisPrimary, +ra_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                device.MoveAxis(TelescopeAxes.axisSecondary, -dec_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
+
+                device.AbortSlew();
+                Assert.IsTrue(device.Tracking);
+                Assert.AreEqual(rates[3], device.CommandString("getCurrentSlewRate", true));
+
+                device.MoveAxis(TelescopeAxes.axisPrimary, -ra_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                device.MoveAxis(TelescopeAxes.axisSecondary, +dec_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
+
+                device.AbortSlew();
+                Assert.IsTrue(device.Tracking);
+                Assert.AreEqual(rates[3], device.CommandString("getCurrentSlewRate", true));
+
+                device.MoveAxis(TelescopeAxes.axisPrimary, +ra_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                device.MoveAxis(TelescopeAxes.axisSecondary, +dec_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
+
+                device.MoveAxis(TelescopeAxes.axisPrimary, 0);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                device.MoveAxis(TelescopeAxes.axisSecondary, 0);
+
+                Assert.IsTrue(device.Tracking);
+                Assert.AreEqual(rates[3], device.CommandString("getCurrentSlewRate", true));
+
+                device.MoveAxis(TelescopeAxes.axisPrimary, +ra_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                device.MoveAxis(TelescopeAxes.axisSecondary, +dec_rate.Minimum);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                Assert.AreEqual(rates[i - 1], device.CommandString("getCurrentSlewRate", true));
+
+                device.MoveAxis(TelescopeAxes.axisSecondary, 0);
+                Assert.IsTrue(device.Slewing);
+                Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SyncToCoordinates(0, 0));
+                device.MoveAxis(TelescopeAxes.axisPrimary, 0);
+
+                Assert.IsTrue(device.Tracking);
+                Assert.AreEqual(rates[3], device.CommandString("getCurrentSlewRate", true));
             }
 
             // One single rate for both axes
             device.MoveAxis(TelescopeAxes.axisPrimary, ra_rates[1].Minimum);
             Assert.IsTrue(device.Slewing);
-            Assert.ThrowsException<ASCOM.InvalidOperationException> (() => device.MoveAxis(TelescopeAxes.axisSecondary, dec_rates[2].Minimum));
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, dec_rates[2].Minimum));
             Assert.IsTrue(device.Slewing);
             device.AbortSlew();
             Assert.IsTrue(device.Tracking);

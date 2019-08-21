@@ -812,7 +812,32 @@ namespace ASCOM.EQ500X
                 if (TrackState.TRACKING == m_TrackState || TrackState.MOVING == m_TrackState)
                 {
                     if (0.0 == Rate)
+                    {
+                        switch (Axis)
+                        {
+                            case TelescopeAxes.axisPrimary:
+                                if (0 != m_RASlewRate)
+                                {
+                                    sendCmd(":Q" + (0 < m_RASlewRate ? 'w' : 'e') + '#');
+                                    m_RASlewRate = 0;
+                                }
+                                break;
+                            case TelescopeAxes.axisSecondary:
+                                if (0 != m_DECSlewRate)
+                                {
+                                    sendCmd(":Q" + (0 < m_DECSlewRate ? 'n' : 's') + '#');
+                                    m_DECSlewRate = 0;
+                                }
+                                break;
+                            default:break;
+                        }
+                        if (0 == m_RASlewRate && 0 == m_DECSlewRate)
+                        {
+                            updateSlewRate(savedSlewRateIndex);
+                            m_TrackState = TrackState.TRACKING;
+                        }
                         return;
+                    }
 
                     SlewRate matchingRate = findSlewRate(Axis, Math.Abs(Rate));
 
@@ -827,9 +852,11 @@ namespace ASCOM.EQ500X
                     {
                         case TelescopeAxes.axisPrimary:
                             sendCmd(":M" + (0 < Rate ? 'w' : 'e') + '#');
+                            m_RASlewRate = Rate;
                             break;
                         case TelescopeAxes.axisSecondary:
                             sendCmd(":M" + (0 < Rate ? 'n' : 's') + '#');
+                            m_DECSlewRate = Rate;
                             break;
                         default:
                             updateSlewRate(savedSlewRateIndex);
@@ -1679,6 +1706,8 @@ namespace ASCOM.EQ500X
 
         private CancellationTokenSource m_RAGuideTaskCancellation = new CancellationTokenSource();
         private CancellationTokenSource m_DECGuideTaskCancellation = new CancellationTokenSource();
+        private double m_RASlewRate;
+        private double m_DECSlewRate;
 
         private bool ReadScopeStatus()
         {
