@@ -684,7 +684,7 @@ namespace ASCOM.EQ500X
                 lock (internalLock)
                 {
                     if (!connectedState)
-                        throw new ASCOM.NotConnectedException("Declination");
+                        return 0;
                     if (getCurrentMechanicalPosition(ref currentMechPosition))
                         throw new ASCOM.ValueNotSetException("Declination");
                     double declination = currentMechPosition.DECsky;
@@ -806,8 +806,7 @@ namespace ASCOM.EQ500X
             LogMessage("MoveAxis", $"Moving {Axis.ToString()} at {Rate}°/s");
             lock (internalLock)
             {
-                if (!connectedState)
-                    throw new ASCOM.NotConnectedException("MoveAxis");
+                CheckConnected("MoveAxis requires hardware connection");
 
                 if (TrackState.TRACKING == m_TrackState || TrackState.MOVING == m_TrackState)
                 {
@@ -948,8 +947,7 @@ namespace ASCOM.EQ500X
 
             lock (internalLock)
             {
-                if (!connectedState)
-                    throw new ASCOM.NotConnectedException("PulseGuide");
+                CheckConnected("PulseGuide requires hardware connection");
 
                 if (TrackState.TRACKING == m_TrackState || TrackState.GUIDING == m_TrackState)
                 {
@@ -1021,7 +1019,7 @@ namespace ASCOM.EQ500X
                 lock (internalLock)
                 {
                     if (!connectedState)
-                        throw new ASCOM.NotConnectedException("RightAscension");
+                        return 0;
                     if (getCurrentMechanicalPosition(ref currentMechPosition))
                         throw new ASCOM.ValueNotSetException("Declination");
                     double rightAscension = currentMechPosition.RAsky;
@@ -1059,15 +1057,13 @@ namespace ASCOM.EQ500X
                 lock (internalLock)
                 {
                     if (!connectedState)
-                        throw new ASCOM.NotConnectedException("SideOfPier");
+                        return PierSide.pierUnknown;
                     LogMessage("SideOfPier Get", $"Pointing {m_SideOfPier.ToString()}");
                     return m_SideOfPier;
                 }
             }
             set
             {
-                if (!connectedState)
-                    throw new ASCOM.NotConnectedException("SideOfPier");
                 LogMessage("SideOfPier Set", "Not implemented");
                 throw new ASCOM.PropertyNotImplementedException("SideOfPier", true);
             }
@@ -1103,8 +1099,8 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                if (!Connected)
-                    throw new ASCOM.NotConnectedException("SiteElevation");
+                if (!connectedState)
+                    return 0;
 
                 if (location.elevation_set)
                 {
@@ -1119,9 +1115,6 @@ namespace ASCOM.EQ500X
                 {
                     lock (internalLock)
                     {
-                        if (!Connected)
-                            throw new ASCOM.NotConnectedException("SiteElevation");
-
                         LogMessage("SiteElevation Set", String.Format("Set Elevation {0}", value));
                         location.elevation = value;
                         location.elevation_set = true;
@@ -1136,7 +1129,7 @@ namespace ASCOM.EQ500X
             get
             {
                 if (!Connected)
-                    throw new ASCOM.NotConnectedException("SiteLatitude");
+                    return 0;
 
                 if (location.latitude_set)
                 {
@@ -1151,9 +1144,6 @@ namespace ASCOM.EQ500X
                 {
                     lock (internalLock)
                     {
-                        if (!Connected)
-                            throw new ASCOM.NotConnectedException("SiteLatitude");
-
                         LogMessage("SiteLatitude Set", String.Format("Latitude {0}", location.latitude));
                         location.latitude = value;
                         location.latitude_set = true;
@@ -1168,7 +1158,7 @@ namespace ASCOM.EQ500X
             get
             {
                 if (!Connected)
-                    throw new ASCOM.NotConnectedException("SiteLongitude");
+                    return 0;
 
                 if (location.longitude_set)
                 {
@@ -1183,8 +1173,7 @@ namespace ASCOM.EQ500X
                 {
                     lock (internalLock)
                     {
-                        if (!Connected)
-                            throw new ASCOM.NotConnectedException("SiteLongitude");
+                        CheckConnected("Setting SiteLongitude requires hardware connection");
 
                         LogMessage("SiteLongitude Set", String.Format("Longitude {0}", value));
                         location.longitude = value;
@@ -1247,8 +1236,7 @@ namespace ASCOM.EQ500X
                 {
                     LogMessage("SlewToCoordinates", $"Slewing to {ra} {dec}");
 
-                    if (!Connected)
-                        throw new ASCOM.NotConnectedException("SlewToCoordinates");
+                    CheckConnected("SlewToCoordinates/Async require hardware connection");
 
                     // Check whether a meridian flip is required
                     double LST = isSimulated ? simEQ500X.LST : SiderealTime;

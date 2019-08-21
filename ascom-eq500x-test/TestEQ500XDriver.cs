@@ -402,6 +402,14 @@ namespace ascom_eq500x_test
         [TestMethod]
         public void Test_InterfaceValidations()
         {
+            Assert.IsFalse(device.Connected);
+            Assert.IsNotNull(device.RightAscension);
+            Assert.IsNotNull(device.Declination);
+            Assert.IsNotNull(device.SiteLongitude);
+            Assert.IsNotNull(device.SiteLatitude);
+            Assert.IsNotNull(device.SiteElevation);
+            Assert.IsNotNull(device.SideOfPier);
+
             device.Connected = true;
             Assert.IsTrue(device.Connected);
 
