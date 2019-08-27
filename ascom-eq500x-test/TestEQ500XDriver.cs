@@ -461,6 +461,7 @@ namespace ascom_eq500x_test
 
             device.MoveAxis(TelescopeAxes.axisPrimary, 0.0);
             device.MoveAxis(TelescopeAxes.axisSecondary, 0.0);
+            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.MoveAxis(TelescopeAxes.axisTertiary, 0.0));
             Assert.IsTrue(device.Tracking);
 
             Assert.IsTrue(ra_rates.Count == dec_rates.Count);

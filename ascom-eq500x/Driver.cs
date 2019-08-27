@@ -75,6 +75,10 @@ namespace ASCOM.EQ500X
         internal static string traceStateProfileName = "Trace Level";
         internal static string traceStateDefault = "false";
 
+        internal static string siteLongitudeName = "Site Longitude";
+        internal static string siteLatitudeName = "Site Latitude";
+        internal static string siteElevationName = "Site Elevation";
+
         internal static string comPort; // Variables to hold the currrent device configuration
         private double m_RightAscension;
         private double m_Declination;
@@ -125,17 +129,60 @@ namespace ASCOM.EQ500X
 
         private SimEQ500X simEQ500X = new SimEQ500X();
 
-        private class Location
+        public class LocationProfile
         {
             internal bool elevation_set = false;
-            internal double elevation = 0;
             internal bool latitude_set = false;
-            internal double latitude = 0;
             internal bool longitude_set = false;
-            internal double longitude = 0;
+            internal double m_Elevation = 0;
+            internal double m_Latitude = 0;
+            internal double m_Longitude = 0;
+            public double Elevation
+            {
+                get { return m_Elevation; }
+                set
+                {
+                    if (-300 <= value && value <= 10000)
+                    {
+                        LogMessage("SiteElevation Set", String.Format("Set Elevation {0}", value));
+                        m_Elevation = value;
+                        elevation_set = true;
+                    }
+                    else throw new ASCOM.InvalidValueException("SiteElevation", value.ToString(), "-300", "+100000");
+                }
+            }
+            public double Latitude
+            {
+                get { return m_Latitude; }
+                set
+                {
+                    if (-90 <= value && value <= +90)
+                    {
+                        LogMessage("SiteLatitude Set", String.Format("Latitude {0}", m_Latitude));
+                        m_Latitude = value;
+                        latitude_set = true;
+                    }
+                    else throw new ASCOM.InvalidValueException("SiteLatitude", value.ToString(), "-90", "+90");
+                }
+            }
+            public double Longitude
+            {
+                get { return m_Longitude;  }
+                set
+                {
+                    if (-180 <= value && value <= +180)
+                    {
+
+                        LogMessage("SiteLongitude Set", String.Format("Longitude {0}", value));
+                        m_Longitude = value;
+                        longitude_set = true;
+                    }
+                    else throw new ASCOM.InvalidValueException("SiteLongitude", value.ToString(), "-180", "+180");
+                }
+            }
         };
 
-        private Location location = new Location();
+        public static LocationProfile m_LocationProfile = new LocationProfile();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EQ500X"/> class.
@@ -330,15 +377,27 @@ namespace ASCOM.EQ500X
                             try
                             {
                                 if (!ReadScopeStatus())
-                                    throw new FormatException();
+                                    throw new FormatException("Connected Set - Failed handshake");
 
                                 connectedState = true;
 
+                                try
+                                {
+                                    SiteLongitude = m_LocationProfile.Longitude;
+                                    SiteLatitude = m_LocationProfile.Latitude;
+                                    SiteElevation = m_LocationProfile.Elevation;
+                                }
+                                catch(Exception)
+                                {
+                                    connectedState = false;
+                                    throw new FormatException(("Connected Set - Invalid profile information"));
+                                }
+
                                 restartReadScopeStatusTimer();
                             }
-                            catch (FormatException)
+                            catch (FormatException e)
                             {
-                                LogMessage("Connected Set", "Port {0} open, but device failed handshake", comPort);
+                                LogMessage("Connected Set", $"Port {comPort} open, but device failed handshake ({e.Message})");
                                 m_Port.Connected = false;
                                 m_Port.Dispose();
                             }
@@ -826,7 +885,8 @@ namespace ASCOM.EQ500X
                                     m_DECSlewRate = 0;
                                 }
                                 break;
-                            default:break;
+                            default:
+                                throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
                         }
                         if (0 == m_RASlewRate && 0 == m_DECSlewRate)
                         {
@@ -843,10 +903,6 @@ namespace ASCOM.EQ500X
 
                     CheckConnected("MoveAxis requires hardware connection");
 
-                    if (TrackState.TRACKING == m_TrackState)
-                        savedSlewRateIndex = m_SlewRate;
-                    updateSlewRate(matchingRate);
-
                     switch (Axis)
                     {
                         case TelescopeAxes.axisPrimary:
@@ -858,9 +914,13 @@ namespace ASCOM.EQ500X
                             m_DECSlewRate = Rate;
                             break;
                         default:
-                            updateSlewRate(savedSlewRateIndex);
                             throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
                     }
+
+                    if (TrackState.TRACKING == m_TrackState)
+                        savedSlewRateIndex = m_SlewRate;
+
+                    updateSlewRate(matchingRate);
 
                     m_TrackState = TrackState.MOVING;
                 }
@@ -1102,25 +1162,16 @@ namespace ASCOM.EQ500X
                 if (!connectedState)
                     return 0;
 
-                if (location.elevation_set)
+                if (m_LocationProfile.elevation_set)
                 {
-                    LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.elevation));
-                    return location.elevation;
+                    LogMessage("SiteElevation Get", String.Format("Elevation {0}", m_LocationProfile.Elevation));
+                    return m_LocationProfile.Elevation;
                 }
                 else throw new ASCOM.InvalidOperationException("SiteElevation - Not initialized");
             }
             set
             {
-                if (-300 <= value && value <= 10000)
-                {
-                    lock (internalLock)
-                    {
-                        LogMessage("SiteElevation Set", String.Format("Set Elevation {0}", value));
-                        location.elevation = value;
-                        location.elevation_set = true;
-                    }
-                }
-                else throw new ASCOM.InvalidValueException("SiteElevation", value.ToString(), "-300", "+100000");
+                lock (internalLock) m_LocationProfile.Elevation = value;
             }
         }
 
@@ -1131,25 +1182,16 @@ namespace ASCOM.EQ500X
                 if (!Connected)
                     return 0;
 
-                if (location.latitude_set)
+                if (m_LocationProfile.latitude_set)
                 {
-                    LogMessage("SiteElevation Get", String.Format("Elevation {0}", location.latitude));
-                    return location.latitude;
+                    LogMessage("SiteElevation Get", String.Format("Elevation {0}", m_LocationProfile.Latitude));
+                    return m_LocationProfile.Latitude;
                 }
                 else throw new ASCOM.InvalidOperationException("SiteLatitude - Not initialized");
             }
             set
             {
-                if (-90 <= value && value <= +90)
-                {
-                    lock (internalLock)
-                    {
-                        LogMessage("SiteLatitude Set", String.Format("Latitude {0}", location.latitude));
-                        location.latitude = value;
-                        location.latitude_set = true;
-                    }
-                }
-                else throw new ASCOM.InvalidValueException("SiteLatitude", value.ToString(), "-90", "+90");
+                lock (internalLock) m_LocationProfile.Latitude = value;
             }
         }
 
@@ -1160,37 +1202,30 @@ namespace ASCOM.EQ500X
                 if (!Connected)
                     return 0;
 
-                if (location.longitude_set)
+                if (m_LocationProfile.longitude_set)
                 {
-                    LogMessage("SiteLongitude Get", String.Format("Elevation {0}", location.longitude));
-                    return location.longitude;
+                    LogMessage("SiteLongitude Get", String.Format("Elevation {0}", m_LocationProfile.Longitude));
+                    return m_LocationProfile.Longitude;
                 }
                 else throw new ASCOM.InvalidOperationException("SiteLongitude - Not initialized");
             }
             set
             {
-                if (-180 <= value && value <= +180)
+                lock (internalLock) m_LocationProfile.Longitude = value;
+
+                //CheckConnected("Setting SiteLongitude requires hardware connection");
+                if (connectedState)
                 {
-                    lock (internalLock)
+                    if (isSimulated)
+                        simEQ500X.LST = 0.0 + value / 15.0;
+
+                    if (!getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
                     {
-                        CheckConnected("Setting SiteLongitude requires hardware connection");
-
-                        LogMessage("SiteLongitude Set", String.Format("Longitude {0}", value));
-                        location.longitude = value;
-                        location.longitude_set = true;
-
-                        if (isSimulated)
-                            simEQ500X.LST = 0.0 + value / 15.0;
-
-                        if (!getCurrentMechanicalPosition(ref currentMechPosition) && currentMechPosition.atParkingPosition())
-                        {
-                            double LST = isSimulated ? simEQ500X.LST : SiderealTime;
-                            Sync(LST - 6, currentMechPosition.DECsky);
-                            LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST {0}", utilities.HoursToHMS(LST)));
-                        }
+                        double LST = isSimulated ? simEQ500X.LST : SiderealTime;
+                        Sync(LST - 6, currentMechPosition.DECsky);
+                        LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST {0}", utilities.HoursToHMS(LST)));
                     }
                 }
-                else throw new ASCOM.InvalidValueException("SiteLongitude", value.ToString(), "-180", "+180");
             }
         }
 
@@ -1613,6 +1648,12 @@ namespace ASCOM.EQ500X
                 driverProfile.DeviceType = "Telescope";
                 tl.Enabled = Convert.ToBoolean(driverProfile.GetValue(driverID, traceStateProfileName, string.Empty, traceStateDefault));
                 comPort = driverProfile.GetValue(driverID, comPortProfileName, string.Empty, comPortDefault);
+                try { m_LocationProfile.Longitude = Convert.ToDouble(driverProfile.GetValue(driverID, siteLongitudeName, string.Empty)); }
+                catch (Exception) { LogMessage("ReadProfile", "No suitable value for longitude in profile."); }
+                try { m_LocationProfile.Latitude = Convert.ToDouble(driverProfile.GetValue(driverID, siteLatitudeName, string.Empty)); }
+                catch (Exception) { LogMessage("ReadProfile", "No suitable value for latitude in profile."); }
+                try { m_LocationProfile.Elevation = Convert.ToDouble(driverProfile.GetValue(driverID, siteElevationName, string.Empty)); }
+                catch (Exception) { LogMessage("ReadProfile", "No suitable value for elevation in profile."); }
             }
         }
 
@@ -1624,8 +1665,15 @@ namespace ASCOM.EQ500X
             using (Profile driverProfile = new Profile())
             {
                 driverProfile.DeviceType = "Telescope";
-                driverProfile.WriteValue(driverID, traceStateProfileName, tl.Enabled.ToString());
-                driverProfile.WriteValue(driverID, comPortProfileName, comPort.ToString());
+                if (driverProfile.IsRegistered(driverID))
+                {
+                    driverProfile.WriteValue(driverID, traceStateProfileName, tl.Enabled.ToString());
+                    driverProfile.WriteValue(driverID, comPortProfileName, comPort.ToString());
+                    driverProfile.WriteValue(driverID, siteLongitudeName, m_LocationProfile.Longitude.ToString());
+                    driverProfile.WriteValue(driverID, siteLatitudeName, m_LocationProfile.Latitude.ToString());
+                    driverProfile.WriteValue(driverID, siteElevationName, m_LocationProfile.Elevation.ToString());
+                }
+                else LogMessage("WriteProfile", $"ASCOM Driver {driverID} is not registered");
             }
         }
 

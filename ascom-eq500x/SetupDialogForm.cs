@@ -7,12 +7,18 @@ using System.Text;
 using System.Windows.Forms;
 using ASCOM.Utilities;
 using ASCOM.EQ500X;
+using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace ASCOM.EQ500X
 {
     [ComVisible(false)]					// Form not registered for COM!
     public partial class SetupDialogForm : Form
     {
+        private ASCOM.Utilities.Util m_Util = new ASCOM.Utilities.Util();
+        private const string m_DMSRegex = @"\d+[° ]+(\d+[' ]+(\d+["" ]*)*)*";
+        private static readonly char[] m_ElevationSymbols = { ' ', 'm' };
+
         public SetupDialogForm()
         {
             InitializeComponent();
@@ -60,6 +66,56 @@ namespace ASCOM.EQ500X
             if (comboBoxComPort.Items.Contains(Telescope.comPort))
             {
                 comboBoxComPort.SelectedItem = Telescope.comPort;
+            }
+            this.LongitudeBox.Text = m_Util.DegreesToDMS(Telescope.m_LocationProfile.Longitude);
+            this.LatitudeBox.Text = m_Util.DegreesToDMS(Telescope.m_LocationProfile.Latitude);
+            this.ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString() + " m";
+        }
+
+        private void LongitudeBox_Validating(object sender, CancelEventArgs e)
+        {
+            try
+            {
+                Match m = Regex.Match(LongitudeBox.Text, m_DMSRegex);
+                double value = m.Success ? m_Util.DMSToDegrees(LongitudeBox.Text) : double.Parse(LongitudeBox.Text, NumberStyles.Number);
+                Telescope.m_LocationProfile.Longitude = value;
+                LongitudeBox.Text = m_Util.DegreesToDMS(value);
+            }
+            catch (Exception)
+            {
+                e.Cancel = true;
+                LongitudeBox.Select(0, LongitudeBox.Text.Length);
+            }
+        }
+
+        private void LatitudeBox_Validating(object sender, CancelEventArgs e)
+        {
+            try
+            {
+                Match m = Regex.Match(LongitudeBox.Text, m_DMSRegex);
+                double value = m.Success ? m_Util.DMSToDegrees(LatitudeBox.Text) : double.Parse(LatitudeBox.Text, NumberStyles.Number);
+                Telescope.m_LocationProfile.Latitude = value;
+                LatitudeBox.Text = m_Util.DegreesToDMS(value);
+            }
+            catch (Exception)
+            {
+                e.Cancel = true;
+                LatitudeBox.Select(0, LatitudeBox.Text.Length);
+            }
+        }
+
+        private void ElevationBox_Validating(object sender, CancelEventArgs e)
+        {
+            try
+            {
+                double value = double.Parse(ElevationBox.Text.TrimEnd(m_ElevationSymbols), NumberStyles.Number);
+                Telescope.m_LocationProfile.Elevation = value;
+                ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString() + " m";
+            }
+            catch (Exception)
+            {
+                e.Cancel = true;
+                ElevationBox.Select(0, ElevationBox.Text.Length);
             }
         }
     }
