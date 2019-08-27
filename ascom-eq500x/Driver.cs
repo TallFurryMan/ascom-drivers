@@ -2122,8 +2122,8 @@ namespace ASCOM.EQ500X
 
         private void updateSlewRate(SlewRate rate)
         {
-            if (rate != m_SlewRate)
-            {
+            //if (rate != m_SlewRate)
+            //{
                 lock (internalLock)
                 {
                     switch (rate)
@@ -2144,7 +2144,7 @@ namespace ASCOM.EQ500X
                     }
                     m_SlewRate = rate;
                 }
-            }
+            //}
         }
         #endregion
 
@@ -2212,7 +2212,7 @@ namespace ASCOM.EQ500X
 
                 // Write RA/DEC in placeholders
                 String CmdString = String.Format(":Sr{0}#:Sd{1}#", p.toStringRA(ref bufRA), p.toStringDEC(ref bufDEC));
-                LogMessage("setTargetMechanicalPosition", "Target RA '{0}' DEC '{0}' converted to '{1}'", p.RAm, p.DECm, CmdString);
+                LogMessage("setTargetMechanicalPosition", $"Target RA '{p.RAm}' DEC '{p.DECm}' converted to '{CmdString}'");
 
                 String buf = "";
 
@@ -2220,9 +2220,9 @@ namespace ASCOM.EQ500X
                     if (0 < getReply(ref buf, 2))
                         if (buf[0] == '1' && buf[1] == '1')
                             return false;
-                        else LogMessage("setTargetMechanicalPosition", "Failed '%s', mount replied %c%c", CmdString, buf[0], buf[1]);
-                    else LogMessage("setTargetMechanicalPosition", "Failed getting 2-byte reply to '%s'", CmdString);
-                else LogMessage("setTargetMechanicalPosition", "Failed '%s'", CmdString);
+                        else LogMessage("setTargetMechanicalPosition", $"Failed '{CmdString}', mount replied {buf[0]}{buf[1]}");
+                    else LogMessage("setTargetMechanicalPosition", $"Failed getting 2-byte reply to '{CmdString}'");
+                else LogMessage("setTargetMechanicalPosition", $"Failed '{CmdString}'");
 
                 return true;
             }
@@ -2232,7 +2232,7 @@ namespace ASCOM.EQ500X
 
         internal int sendCmd(String data)
         {
-            LogMessage("SendCmd", "<{0}>", data);
+            LogMessage("SendCmd", $"<{data}>");
             if (!isSimulation())
             {
                 try
@@ -2248,19 +2248,20 @@ namespace ASCOM.EQ500X
             return 0;
         }
 
-        internal int getReply(ref String data, int len)
+        internal int getReply(ref string data, int len)
         {
             if (!isSimulation())
             {
                 data = m_Port.ReceiveCounted(len);
-                LogMessage("getReply", "<{0}>", data);
+                LogMessage("getReply", $"<{data}>");
+                return data.Length;
             }
             return 0;
         }
 
         private int getCommandString(ref String data, String cmd)
         {
-            LogMessage("getCommandString", "CMD <{0}>", cmd);
+            LogMessage("getCommandString", $"CMD <{cmd}>");
 
             /* Add mutex */
             //std::unique_lock<std::mutex> guard(lx200CommsLock);
@@ -2279,7 +2280,7 @@ namespace ASCOM.EQ500X
             if (m.Success)
                 data = m.Groups[1].Value;
 
-            LogMessage("getCommandString", "RES <{0}>", data);
+            LogMessage("getCommandString", $"RES <{data}>");
 
             return 0;
         }
