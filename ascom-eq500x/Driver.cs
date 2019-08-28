@@ -926,7 +926,7 @@ namespace ASCOM.EQ500X
                                 if (isSimulated)
                                     simEQ500X.isMovingAxisSecondary = false;
                             }
-                            if (0 < m_DECSlewRate)
+                            if (0 != m_DECSlewRate)
                             {
                                 DateTime now = DateTime.UtcNow;
                                 switch (findSlewRate(Axis, Math.Abs(m_DECSlewRate)))
