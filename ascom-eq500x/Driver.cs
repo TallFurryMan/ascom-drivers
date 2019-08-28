@@ -2060,7 +2060,6 @@ namespace ASCOM.EQ500X
                             // Remember previous adjustment
                             previous_adjustment = adjustment;
                         }
-                        LogMessage("ReadScopeStatus", $"Current adjustment speed is {adjustments[adjustment].slew_rate}");
 
                         // If RA is being adjusted, check delta against adjustment epsilon to enable or disable movement
                         // The smallest change detectable in RA is 1/3600 hours, or 15/3600 degrees
@@ -2114,7 +2113,7 @@ namespace ASCOM.EQ500X
                         if (0 < CmdString.Length)
                         {
                             // Send command to mount
-                            if (0 < sendCmd(CmdString))
+                            if (CmdString.Length != sendCmd(CmdString))
                             {
                                 LogMessage("ReadScopeStatus", $"Error centering ({targetMechPosition.RAm * 15.0:F2}°,{targetMechPosition.DECm:F2}°)");
                                 //slewError(-1);
@@ -2144,6 +2143,8 @@ namespace ASCOM.EQ500X
                         }
                         // Else adjust poll timeout to adjustment speed and continue
                         else PollMs = adjustments[adjustment].polling_interval;
+
+                        LogMessage("ReadScopeStatus", $"Current adjustment speed is {adjustments[adjustment].slew_rate}, polling at {PollMs}");
                     }
                     // If we attained target position at one arcsecond precision, finish procedure and track target
                     else
@@ -2163,6 +2164,7 @@ namespace ASCOM.EQ500X
                     if (DECmIncrease) DECmIncrease = false;
                     if (RAmIncrease) RAmIncrease = false;
                     if (RAmDecrease) RAmDecrease = false;
+                    PollMs = 1000;
                     adjustment = -1;
                 }
                 // Update RA/DEC properties
