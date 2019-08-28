@@ -125,6 +125,8 @@ namespace ASCOM.EQ500X
             internal double MechanicalDEC = 0;
             internal double LST = 6;
             internal long last_sim = 0;
+            internal bool isMovingAxisPrimary = false;
+            internal bool isMovingAxisSecondary = false;
         };
 
         private SimEQ500X simEQ500X = new SimEQ500X();
@@ -167,7 +169,7 @@ namespace ASCOM.EQ500X
             }
             public double Longitude
             {
-                get { return m_Longitude;  }
+                get { return m_Longitude; }
                 set
                 {
                     if (-180 <= value && value <= +180)
@@ -387,7 +389,7 @@ namespace ASCOM.EQ500X
                                     SiteLatitude = m_LocationProfile.Latitude;
                                     SiteElevation = m_LocationProfile.Elevation;
                                 }
-                                catch(Exception)
+                                catch (Exception)
                                 {
                                     connectedState = false;
                                     throw new FormatException(("Connected Set - Invalid profile information"));
@@ -862,69 +864,159 @@ namespace ASCOM.EQ500X
 
         public void MoveAxis(TelescopeAxes Axis, double Rate)
         {
-            LogMessage("MoveAxis", $"Moving {Axis.ToString()} at {Rate}°/s");
-            lock (internalLock)
+            switch (Axis)
             {
-                if (TrackState.TRACKING == m_TrackState || TrackState.MOVING == m_TrackState)
+                case TelescopeAxes.axisPrimary: break;
+                case TelescopeAxes.axisSecondary: break;
+                default:
+                    throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
+            }
+
+            if (0.0 == Rate)
+            {
+                if (TrackState.TRACKING == m_TrackState)
                 {
-                    if (0.0 == Rate)
-                    {
-                        switch (Axis)
-                        {
-                            case TelescopeAxes.axisPrimary:
-                                if (0 != m_RASlewRate)
-                                {
-                                    sendCmd(":Q" + (0 < m_RASlewRate ? 'w' : 'e') + '#');
-                                    m_RASlewRate = 0;
-                                }
-                                break;
-                            case TelescopeAxes.axisSecondary:
-                                if (0 != m_DECSlewRate)
-                                {
-                                    sendCmd(":Q" + (0 < m_DECSlewRate ? 'n' : 's') + '#');
-                                    m_DECSlewRate = 0;
-                                }
-                                break;
-                            default:
-                                throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
-                        }
-                        if (0 == m_RASlewRate && 0 == m_DECSlewRate)
-                        {
-                            updateSlewRate(savedSlewRateIndex);
-                            m_TrackState = TrackState.TRACKING;
-                        }
-                        return;
-                    }
-
-                    SlewRate matchingRate = findSlewRate(Axis, Math.Abs(Rate));
-
-                    if (TrackState.MOVING == m_TrackState && matchingRate != m_SlewRate)
-                        throw new ASCOM.InvalidOperationException($"MoveAxis - Mount is already moving at {m_SlewRate.ToString()}");
-
-                    CheckConnected("MoveAxis requires hardware connection");
-
+                    LogMessage("MoveAxis", $"Stop request on axis {Axis.ToString()} while tracking, bypassed");
+                }
+                else if (TrackState.MOVING == m_TrackState)
+                {
+                    LogMessage("MoveAxis", $"Stop request on axis {Axis.ToString()}");
                     switch (Axis)
                     {
                         case TelescopeAxes.axisPrimary:
-                            sendCmd(":M" + (0 < Rate ? 'w' : 'e') + '#');
-                            m_RASlewRate = Rate;
+                            lock (internalLock)
+                            {
+                                if (0 != m_RASlewRate)
+                                    if (4 != sendCmd(":Q" + (0 < m_RASlewRate ? 'w' : 'e') + '#'))
+                                        throw new ASCOM.DriverException($"MoveAxis - Failed stopping mount axis {Axis.ToString()}");
+                                if (isSimulated)
+                                    simEQ500X.isMovingAxisPrimary = false;
+                            }
+                            if (0 != m_RASlewRate)
+                            {
+                                DateTime now = DateTime.UtcNow;
+                                switch (findSlewRate(Axis, Math.Abs(m_RASlewRate)))
+                                {
+                                    case SlewRate.SLEW_GUIDE: m_nextRAMoveAt = now.AddMilliseconds(100); break;
+                                    case SlewRate.SLEW_CENTER: m_nextRAMoveAt = now.AddMilliseconds(500); break;
+                                    case SlewRate.SLEW_FIND: m_nextRAMoveAt = now.AddMilliseconds(1000); break;
+                                    case SlewRate.SLEW_MAX: m_nextRAMoveAt = now.AddMilliseconds(3000); break;
+                                    default: break;
+                                }
+                                m_RASlewRate = 0;
+                                // Synced stop on MoveAxis
+                                if (now < m_nextRAMoveAt)
+                                {
+                                    LogMessage("MoveAxis", $"API warning: waiting for mount to stop on axis {Axis.ToString()}");
+                                    Thread.Sleep((m_nextRAMoveAt - now).Milliseconds);
+                                }
+                            }
                             break;
+
                         case TelescopeAxes.axisSecondary:
-                            sendCmd(":M" + (0 < Rate ? 'n' : 's') + '#');
-                            m_DECSlewRate = Rate;
+                            lock (internalLock)
+                            {
+                                if (0 != m_DECSlewRate)
+                                    if (4 != sendCmd(":Q" + (0 < m_DECSlewRate ? 'n' : 's') + '#'))
+                                        throw new ASCOM.DriverException($"MoveAxis - Failed stopping mount axis {Axis.ToString()}");
+                                if (isSimulated)
+                                    simEQ500X.isMovingAxisSecondary = false;
+                            }
+                            if (0 < m_DECSlewRate)
+                            {
+                                DateTime now = DateTime.UtcNow;
+                                switch (findSlewRate(Axis, Math.Abs(m_DECSlewRate)))
+                                {
+                                    case SlewRate.SLEW_GUIDE: m_nextDECMoveAt = now.AddMilliseconds(100); break;
+                                    case SlewRate.SLEW_CENTER: m_nextDECMoveAt = now.AddMilliseconds(500); break;
+                                    case SlewRate.SLEW_FIND: m_nextDECMoveAt = now.AddMilliseconds(1000); break;
+                                    case SlewRate.SLEW_MAX: m_nextDECMoveAt = now.AddMilliseconds(3000); break;
+                                    default: break;
+                                }
+                                m_DECSlewRate = 0;
+                                // Synced stop on MoveAxis
+                                if (now < m_nextDECMoveAt)
+                                {
+                                    LogMessage("MoveAxis", $"API warning: waiting for mount to stop on axis {Axis.ToString()}");
+                                    Thread.Sleep((m_nextDECMoveAt - now).Milliseconds);
+                                }
+                            }
                             break;
+
                         default:
                             throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
                     }
 
-                    if (TrackState.TRACKING == m_TrackState)
-                        savedSlewRateIndex = m_SlewRate;
-
-                    updateSlewRate(matchingRate);
-
-                    m_TrackState = TrackState.MOVING;
+                    if (0 == m_RASlewRate && 0 == m_DECSlewRate)
+                    {
+                        updateSlewRate(savedSlewRateIndex);
+                        m_TrackState = TrackState.TRACKING;
+                    }
                 }
-                else throw new ASCOM.InvalidOperationException($"MoveAxis - Not tracking");
+            }
+            else
+            {
+                LogMessage("MoveAxis", $"Moving {Axis.ToString()} at {Rate}°/s");
+
+#if false // Here to implement async stop on MoveAxis
+                DateTime now = DateTime.UtcNow;
+                switch (Axis)
+                {
+                    case TelescopeAxes.axisPrimary:
+                        if (now < m_nextRAMoveAt)
+                            Thread.Sleep((m_nextRAMoveAt - now).Milliseconds);
+                        break;
+
+                    case TelescopeAxes.axisSecondary:
+                        if (now < m_nextDECMoveAt)
+                            Thread.Sleep((m_nextDECMoveAt - now).Milliseconds);
+                        break;
+
+                    default:
+                        throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
+                }
+#endif
+
+                lock (internalLock)
+                {
+                    if (TrackState.TRACKING == m_TrackState || TrackState.MOVING == m_TrackState)
+                    {
+                        SlewRate matchingRate = findSlewRate(Axis, Math.Abs(Rate));
+
+                        if (TrackState.MOVING == m_TrackState && matchingRate != m_SlewRate)
+                            throw new ASCOM.InvalidOperationException($"MoveAxis - Mount is already moving at {m_SlewRate.ToString()}");
+
+                        CheckConnected("MoveAxis requires hardware connection");
+
+                        switch (Axis)
+                        {
+                            case TelescopeAxes.axisPrimary:
+                                if (4 != sendCmd(":M" + (0 < Rate ? 'w' : 'e') + '#'))
+                                    throw new ASCOM.DriverException($"MoveAxis - Failed moving mount axis {Axis.ToString()} at rate {matchingRate.ToString()}"); ;
+                                m_RASlewRate = Rate;
+                                if (isSimulated) simEQ500X.isMovingAxisPrimary = true;
+                                break;
+
+                            case TelescopeAxes.axisSecondary:
+                                if (4 != sendCmd(":M" + (0 < Rate ? 'n' : 's') + '#'))
+                                    throw new ASCOM.DriverException($"MoveAxis - Failed moving mount axis {Axis.ToString()} at rate {matchingRate.ToString()}");
+                                m_DECSlewRate = Rate;
+                                if (isSimulated) simEQ500X.isMovingAxisSecondary = true;
+                                break;
+
+                            default:
+                                throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
+                        }
+
+                        if (TrackState.TRACKING == m_TrackState)
+                            savedSlewRateIndex = m_SlewRate;
+
+                        updateSlewRate(matchingRate);
+
+                        m_TrackState = TrackState.MOVING;
+                    }
+                    else throw new ASCOM.InvalidOperationException($"MoveAxis - Not tracking");
+                }
             }
         }
 
@@ -1389,15 +1481,14 @@ namespace ASCOM.EQ500X
             }
             else
             {
-                LogMessage("SyncToCoordinates", String.Format("Set RA:{0:F2} DEC:{1:F2}", RightAscension, Declination));
-                lock (internalLock)
-                {
-                    if (TrackState.TRACKING != m_TrackState)
-                        throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
+                if (TrackState.TRACKING != m_TrackState)
+                    throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
 
+                LogMessage("SyncToCoordinates", String.Format("Set RA:{0:F2} DEC:{1:F2}", RightAscension, Declination));
+
+                lock (internalLock)
                     if (!Sync(RightAscension, Declination))
                         throw new ASCOM.DriverException("SyncToCoordinates");
-                }
             }
         }
 
@@ -1413,15 +1504,14 @@ namespace ASCOM.EQ500X
             }
             else
             {
-                LogMessage("SyncToTarget", String.Format("Set RA:{0:F2} DEC:{1:F2}", targetMechPosition.RAsky, targetMechPosition.DECsky));
-                lock (internalLock)
-                {
-                    if (TrackState.TRACKING != m_TrackState)
-                        throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
+                if (TrackState.TRACKING != m_TrackState)
+                    throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
 
+                LogMessage("SyncToTarget", String.Format("Set RA:{0:F2} DEC:{1:F2}", targetMechPosition.RAsky, targetMechPosition.DECsky));
+
+                lock (internalLock)
                     if (!Sync(targetMechPosition.RAsky, targetMechPosition.DECsky))
                         throw new ASCOM.DriverException("SyncToCoordinates");
-                }
             }
         }
 
@@ -1535,13 +1625,13 @@ namespace ASCOM.EQ500X
             throw new ASCOM.MethodNotImplementedException("Unpark");
         }
 
-        #endregion
+#endregion
 
-        #region Private properties and methods
+#region Private properties and methods
         // here are some useful properties and methods that can be used as required
         // to help with driver development
 
-        #region ASCOM Registration
+#region ASCOM Registration
 
         // Register or unregister driver for ASCOM. This is harmless if already
         // registered or unregistered. 
@@ -1613,7 +1703,7 @@ namespace ASCOM.EQ500X
             RegUnregASCOM(false);
         }
 
-        #endregion
+#endregion
 
         /// <summary>
         /// Returns true if there is a valid connection to the driver hardware
@@ -1690,9 +1780,9 @@ namespace ASCOM.EQ500X
             Debug.WriteLine(identifier + " | " + msg);
             tl.LogMessage(identifier, msg);
         }
-        #endregion
+#endregion
 
-        #region Mount functionalities
+#region Mount functionalities
 
         // One degree, one arcminute, one arcsecond
         const double ONEDEGREE = 1.0;
@@ -1762,6 +1852,8 @@ namespace ASCOM.EQ500X
         private CancellationTokenSource m_DECGuideTaskCancellation = new CancellationTokenSource();
         private double m_RASlewRate;
         private double m_DECSlewRate;
+        private DateTime m_nextRAMoveAt = DateTime.UtcNow;
+        private DateTime m_nextDECMoveAt = DateTime.UtcNow;
 
         private bool ReadScopeStatus()
         {
@@ -1769,14 +1861,6 @@ namespace ASCOM.EQ500X
             {
                 if (isSimulated)
                 {
-                    // These are the simulated rates
-                    double[] rates = {
-                        /*RG*/  5 * ARCSECOND,
-                        /*RC*/  5 * ARCMINUTE,
-                        /*RM*/ 20 * ARCMINUTE,
-                        /*RS*/  5 * ONEDEGREE,
-                    };
-
                     // Calculate elapsed time since last status read
                     long now = Stopwatch.GetTimestamp();
                     long delta = 0;
@@ -1788,21 +1872,44 @@ namespace ASCOM.EQ500X
                     simEQ500X.last_sim = now;
                     double delta_s = (double)delta / Stopwatch.Frequency;
 
-                    // Simulate movement if needed
-                    if (0 <= adjustment)
+                    if (TrackState.SLEWING == m_TrackState)
                     {
-                        // Use currentRA/currentDEC to store smaller-than-one-arcsecond values
-                        if (RAmDecrease) simEQ500X.MechanicalRA = (simEQ500X.MechanicalRA - rates[adjustment] * delta_s / 15.0 + 24.0) % 24.0;
-                        if (RAmIncrease) simEQ500X.MechanicalRA = (simEQ500X.MechanicalRA + rates[adjustment] * delta_s / 15.0 + 24.0) % 24.0;
-                        if (DECmDecrease) simEQ500X.MechanicalDEC -= rates[adjustment] * delta_s;
-                        if (DECmIncrease) simEQ500X.MechanicalDEC += rates[adjustment] * delta_s;
+                        // These are the simulated rates
+                        double[] rates = {
+                        /*RG*/  5 * ARCSECOND,
+                        /*RC*/  5 * ARCMINUTE,
+                        /*RM*/ 20 * ARCMINUTE,
+                        /*RS*/  5 * ONEDEGREE,
+                        };
+
+                        // Simulate movement if needed
+                        if (0 <= adjustment)
+                        {
+                            // Use currentRA/currentDEC to store smaller-than-one-arcsecond values
+                            if (RAmDecrease) simEQ500X.MechanicalRA = (simEQ500X.MechanicalRA - rates[adjustment] * delta_s / 15.0 + 24.0) % 24.0;
+                            if (RAmIncrease) simEQ500X.MechanicalRA = (simEQ500X.MechanicalRA + rates[adjustment] * delta_s / 15.0 + 24.0) % 24.0;
+                            if (DECmDecrease) simEQ500X.MechanicalDEC -= rates[adjustment] * delta_s;
+                            if (DECmIncrease) simEQ500X.MechanicalDEC += rates[adjustment] * delta_s;
+                        }
 
                         // Update current position and rewrite simulated mechanical positions
                         MechanicalPoint p = new MechanicalPoint(simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
                         p.toStringRA(ref simEQ500X.MechanicalRAStr);
                         p.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
 
-                        LogMessage("ReadScopeStatus", "New mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2:F3}°,{3:F3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
+                        LogMessage("ReadScopeStatus", "Slewing: new mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2:F3}°,{3:F3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
+                    }
+                    else if (TrackState.MOVING == m_TrackState)
+                    {
+                        if (simEQ500X.isMovingAxisPrimary) simEQ500X.MechanicalRA = (simEQ500X.MechanicalRA + m_RASlewRate * delta_s / 15.0 + 24.0) % 24.0;
+                        if (simEQ500X.isMovingAxisSecondary) simEQ500X.MechanicalDEC += m_DECSlewRate * delta_s;
+
+                        // Update current position and rewrite simulated mechanical positions
+                        MechanicalPoint p = new MechanicalPoint(simEQ500X.MechanicalRA, simEQ500X.MechanicalDEC);
+                        p.toStringRA(ref simEQ500X.MechanicalRAStr);
+                        p.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
+
+                        LogMessage("ReadScopeStatus", "Moving: new mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2:F3}°,{3:F3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, m_RASlewRate, m_DECSlewRate, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
                     }
                 }
 
@@ -1815,6 +1922,37 @@ namespace ASCOM.EQ500X
 
                 bool ra_changed = m_RightAscension != currentMechPosition.RAsky;
                 bool dec_changed = m_Declination != currentMechPosition.DECsky;
+
+                /*
+                if (TrackState.MOVING == m_TrackState)
+                {
+                    if (ra_changed)
+                    {
+                        m_RAMoveLatency = 
+                    }
+                    else if (0 != m_RASlewRate)
+                    {
+                        if (0 < --m_RAChangeCounter)
+                        {
+                            LogMessage("ReadScopeStatus", $"Mount stopped moving on right ascension axis");
+                            m_RASlewRate = 0;
+                        }
+                    }
+
+                    if (!dec_changed && 0 != m_DECSlewRate)
+                    {
+                        LogMessage("ReadScopeStatus", $"Mount stopped moving on declination axis");
+                        m_DECSlewRate = 0;
+                    }
+
+                    if (0 == m_RASlewRate && 0 == m_DECSlewRate)
+                    {
+                        LogMessage("ReadScopeStatus", $"Mount stopped moving, restoring rate {savedSlewRateIndex} and tracking");
+                        updateSlewRate(savedSlewRateIndex);
+                        m_TrackState = TrackState.TRACKING;
+                    }
+                }
+                */
 
                 if (dec_changed)
                     m_Declination = currentMechPosition.DECsky;
@@ -2125,31 +2263,31 @@ namespace ASCOM.EQ500X
         {
             //if (rate != m_SlewRate)
             //{
-                lock (internalLock)
+            lock (internalLock)
+            {
+                switch (rate)
                 {
-                    switch (rate)
-                    {
-                        case SlewRate.SLEW_MAX:
-                            sendCmd(":RS#");
-                            break;
-                        case SlewRate.SLEW_FIND:
-                            sendCmd(":RF#");
-                            break;
-                        case SlewRate.SLEW_CENTER:
-                            sendCmd(":RC#");
-                            break;
-                        case SlewRate.SLEW_GUIDE:
-                            sendCmd(":RG#");
-                            break;
-                        default: return;
-                    }
-                    m_SlewRate = rate;
+                    case SlewRate.SLEW_MAX:
+                        sendCmd(":RS#");
+                        break;
+                    case SlewRate.SLEW_FIND:
+                        sendCmd(":RF#");
+                        break;
+                    case SlewRate.SLEW_CENTER:
+                        sendCmd(":RC#");
+                        break;
+                    case SlewRate.SLEW_GUIDE:
+                        sendCmd(":RG#");
+                        break;
+                    default: return;
                 }
+                m_SlewRate = rate;
+            }
             //}
         }
-        #endregion
+#endregion
 
-        #region Low-level commands
+#region Low-level commands
         internal bool gotoTargetPosition(MechanicalPoint p)
         {
             if (!isSimulation())
@@ -2246,7 +2384,7 @@ namespace ASCOM.EQ500X
                     return -1;
                 }
             }
-            return 0;
+            else return data.Length;
         }
 
         internal int getReply(ref string data, int len)
@@ -2290,6 +2428,6 @@ namespace ASCOM.EQ500X
         {
             return isSimulated;
         }
-        #endregion
+#endregion
     }
 }
