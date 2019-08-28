@@ -53,8 +53,8 @@ namespace ascom_eq500x_test
                 Assert.AreEqual(0, device.SupportedActions.Count);
 
                 /* Moving */
-                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(TelescopeAxes.axisPrimary, 0));
-                Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, 0));
+                //Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(TelescopeAxes.axisPrimary, 0));
+                //Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.MoveAxis(TelescopeAxes.axisSecondary, 0));
                 Assert.IsTrue(device.CanMoveAxis(TelescopeAxes.axisPrimary));
                 Assert.IsTrue(device.CanMoveAxis(TelescopeAxes.axisSecondary));
                 Assert.IsFalse(device.CanMoveAxis(TelescopeAxes.axisTertiary));
@@ -130,19 +130,21 @@ namespace ascom_eq500x_test
             /* Location */
 
             Assert.IsFalse(device.Connected);
+            /*
             Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteElevation);
             Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteElevation = 0);
             Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteLatitude);
             Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteLatitude = 0);
             Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteLongitude);
             Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SiteLongitude = 0);
+            */
             Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.UTCDate = DateTime.UtcNow);
 
             device.Connected = true;
             Assert.IsTrue(device.Connected);
-            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteElevation);
-            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLatitude);
-            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLongitude);
+            //Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteElevation);
+            //Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLatitude);
+            //Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLongitude);
             Assert.AreEqual(DateTime.UtcNow.ToLongTimeString(), device.UTCDate.ToLongTimeString());
 
             device.SiteLongitude = 0;
@@ -193,10 +195,10 @@ namespace ascom_eq500x_test
             Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.Azimuth);
 
             Assert.IsFalse(device.Connected);
-            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.Declination);
-            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.RightAscension);
-            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SideOfPier);
-            Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.SideOfPier = 0);
+            //Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.Declination);
+            //Assert.ThrowsException<ASCOM.NotConnectedException>(() => device.RightAscension);
+            Assert.AreEqual(PierSide.pierUnknown, device.SideOfPier);
+            Assert.ThrowsException<ASCOM.PropertyNotImplementedException>(() => device.SideOfPier = 0);
             Assert.IsFalse(device.CanSetPierSide);
 
             device.Connected = true;
@@ -413,9 +415,9 @@ namespace ascom_eq500x_test
             device.Connected = true;
             Assert.IsTrue(device.Connected);
 
-            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLongitude);
-            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLatitude);
-            Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteElevation);
+            //Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLongitude);
+            //Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteLatitude);
+            //Assert.ThrowsException<ASCOM.InvalidOperationException>(() => device.SiteElevation);
 
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLongitude = -181);
             Assert.ThrowsException<ASCOM.InvalidValueException>(() => device.SiteLongitude = +181);
@@ -724,9 +726,8 @@ namespace ascom_eq500x_test
             Assert.IsTrue(device.Connected);
             Assert.AreEqual(0, device.RightAscension);
             Assert.AreEqual(90, device.Declination);
-            double target_ra = -1, target_dec = 80;
+            double target_ra = 23, target_dec = 80;
             device.SlewToCoordinatesAsync(target_ra, target_dec);
-            target_ra = 23; // -1 on other side
             Assert.AreEqual(target_ra, device.TargetRightAscension);
             Assert.AreEqual(target_dec, device.TargetDeclination);
             Assert.IsTrue(device.Slewing);
@@ -843,9 +844,8 @@ namespace ascom_eq500x_test
             Assert.AreEqual(PierSide.pierWest, device.SideOfPier);
             Assert.AreEqual(0, device.RightAscension);
             Assert.AreEqual(90, device.Declination);
-            double target_ra = -1, target_dec = 90;
+            double target_ra = 23, target_dec = 90;
             device.SlewToCoordinatesAsync(target_ra, target_dec);
-            target_ra = 23; // -1 on other side
             Assert.AreEqual(target_ra, device.TargetRightAscension);
             Assert.AreEqual(target_dec, device.TargetDeclination);
             Assert.IsTrue(device.Slewing);
