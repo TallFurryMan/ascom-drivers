@@ -1204,7 +1204,7 @@ namespace ASCOM.EQ500X
 
                 if (m_LocationProfile.longitude_set)
                 {
-                    LogMessage("SiteLongitude Get", String.Format("Elevation {0}", m_LocationProfile.Longitude));
+                    LogMessage("SiteLongitude Get", String.Format("Longitude {0}", m_LocationProfile.Longitude));
                     return m_LocationProfile.Longitude;
                 }
                 else throw new ASCOM.InvalidOperationException("SiteLongitude - Not initialized");
@@ -1225,6 +1225,7 @@ namespace ASCOM.EQ500X
                         Sync(LST - 6, currentMechPosition.DECsky);
                         LogMessage("SiteLongitude Set", String.Format("Location updated: mount considered parked, synced to LST {0}", utilities.HoursToHMS(LST)));
                     }
+                    else LogMessage("SiteLongitude Set", "Mount is not in park position, no sync");
                 }
             }
         }
