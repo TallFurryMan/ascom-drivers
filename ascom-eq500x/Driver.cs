@@ -502,6 +502,10 @@ namespace ASCOM.EQ500X
                 LogMessage("AbortSlew", $"Aborting slew called while {m_TrackState.ToString()}");
                 if (TrackState.TRACKING != m_TrackState)
                 {
+                    if (DECmDecrease) DECmDecrease = false;
+                    if (DECmIncrease) DECmIncrease = false;
+                    if (RAmIncrease) RAmIncrease = false;
+                    if (RAmDecrease) RAmDecrease = false;
                     PollMs = 1000;
                     m_TrackState = TrackState.TRACKING;
                     // Abort movement
@@ -1374,9 +1378,8 @@ namespace ASCOM.EQ500X
 
                     // Deduce required orientation of mount in HA quadrants - set orientation BEFORE coordinates!
                     targetMechPosition.PointingState = (0 <= HA && HA < 12) ? MechanicalPoint.PointingStates.POINTING_NORMAL : MechanicalPoint.PointingStates.POINTING_BEYOND_POLE;
-                    targetMechPosition.RAsky = ra;
-                    targetMechPosition.DECsky = dec;
-                    m_TargetRightAscension_set = m_TargetDeclination_set = true;
+                    TargetRightAscension = targetMechPosition.RAsky = ra;
+                    TargetDeclination = targetMechPosition.DECsky = dec;
 
                     // If moving, let's stop it first.
                     if (Slewing)
@@ -2152,6 +2155,10 @@ namespace ASCOM.EQ500X
                         LogMessage("ReadScopeStatus", "Slew is complete. Tracking...");
                         sendCmd(":Q#");
                         updateSlewRate(savedSlewRateIndex);
+                        if (RAmIncrease) RAmIncrease = false;
+                        if (RAmDecrease) RAmDecrease = false;
+                        if (DECmIncrease) DECmIncrease = false;
+                        if (DECmDecrease) DECmDecrease = false;
                         adjustment = -1;
                         PollMs = 1000;
                         m_TrackState = TrackState.TRACKING;
@@ -2178,6 +2185,10 @@ namespace ASCOM.EQ500X
                 // If we failed at some point, attempt to stop moving and update properties with error
                 sendCmd(":Q#");
                 updateSlewRate(savedSlewRateIndex);
+                if (DECmDecrease) DECmDecrease = false;
+                if (DECmIncrease) DECmIncrease = false;
+                if (RAmIncrease) RAmIncrease = false;
+                if (RAmDecrease) RAmDecrease = false;
                 adjustment = -1;
                 PollMs = 1000;
                 m_TrackState = TrackState.TRACKING;
