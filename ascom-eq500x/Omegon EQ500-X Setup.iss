@@ -12,17 +12,19 @@ AppPublisherURL=mailto:eric.dejouhanet@gmail.com
 AppSupportURL=http://tech.groups.yahoo.com/group/ASCOM-Talk/
 AppUpdatesURL=http://ascom-standards.org/
 VersionInfoVersion=1.0.0
+; This is the OS version, 2000/XP/2003 not supported anymore
 MinVersion=0,6.0
 DefaultDirName="{commoncf}\ASCOM\Telescope"
 DisableDirPage=yes
 DisableProgramGroupPage=yes
-OutputDir="."
-OutputBaseFilename="OmegonEQ500X Setup"
+OutputDir=".\bin\Release"
+OutputBaseFilename="Omegon EQ500-X Setup"
 Compression=lzma
 SolidCompression=yes
+
 ; Put there by Platform if Driver Installer Support selected
 WizardImageFile="C:\Program Files (x86)\ASCOM\Platform 6 Developer Components\Installer Generator\Resources\WizardImage.bmp"
-LicenseFile=".\ascom-eq500x\License.txt"
+LicenseFile=".\License.txt"
 ; {cf}\ASCOM\Uninstall\Telescope folder created by Platform, always
 UninstallFilesDir="{commoncf}\ASCOM\Uninstall\Telescope\OmegonEQ500X"
 
@@ -34,10 +36,13 @@ Name: "{commoncf}\ASCOM\Uninstall\Telescope\OmegonEQ500X"
 ; TODO: Add subfolders below {app} as needed (e.g. Name: "{app}\MyFolder")
 
 [Files]
-Source: ".\ascom-eq500x\bin\Debug\ASCOM.EQ500X.Telescope.dll"; DestDir: "{app}"
+Source: ".\bin\Release\ASCOM.EQ500X.Telescope.dll"; DestDir: "{app}"
 ; Require a read-me HTML to appear after installation, maybe driver's Help doc
-Source: ".\ascom-eq500x\ReadMe.htm"; DestDir: "{app}"; Flags: isreadme
+Source: ".\ReadMe.htm"; DestDir: "{app}"; Flags: isreadme
 ; TODO: Add other files needed by your driver here (add subfolders above)
+Source: ".\License.txt"; DestDir: "{app}"; Flags: isreadme
+Source: ".\ASCOM.EQ500X.Telescope.Validation.txt"; DestDir: "{app}"; Flags: isreadme
+Source: ".\ASCOM.EQ500X.Telescope.ValidationDriverLogs.txt"; DestDir: "{app}"; Flags: isreadme
 
 
 ; Only if driver is .NET
