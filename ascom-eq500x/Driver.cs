@@ -2110,7 +2110,7 @@ namespace ASCOM.EQ500X
                         Debug.Assert(!(RAmIncrease && RAmDecrease) && !(DECmDecrease && DECmIncrease));
 
                         // This log shows target in Degrees/Degrees and delta in Degrees/Degrees
-                        LogMessage("ReadScopeStatus", string.Format("Centering ({0:F2}°,{1:F2}°) delta ({2:F2}°,{3:F2}°) moving {4}{5}{6}{7} at {8} until less than ({9:F2}°,{10:F2}°)", targetMechPosition.RAm * 15.0, targetMechPosition.DECm, ra_delta, dec_delta, RAmDecrease ? 'W' : '.', RAmIncrease ? 'E' : '.', DECmDecrease ? 'N' : '.', DECmIncrease ? 'S' : '.', adjustments[adjustment].slew_rate, Math.Max(adjustments[adjustment].epsilon, RA_GRANULARITY), adjustments[adjustment].epsilon));
+                        LogMessage("ReadScopeStatus", string.Format("Centering ({0:F2}°,{1:F2}°) delta ({2:F2}°,{3:F2}°) moving {4}{5} {6}{7} at {8} until less than ({9:F2}°,{10:F2}°)", targetMechPosition.RAm * 15.0, targetMechPosition.DECm, ra_delta, dec_delta, RAmDecrease ? 'W' : '.', RAmIncrease ? 'E' : '.', DECmDecrease ? "Equ" : " . ", DECmIncrease ? "Pol" : " . ", adjustments[adjustment].slew_rate, Math.Max(adjustments[adjustment].epsilon, RA_GRANULARITY), adjustments[adjustment].epsilon));
 
                         // If we have a command to run, issue it
                         if (0 < CmdString.Length)
