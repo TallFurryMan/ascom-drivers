@@ -2035,14 +2035,14 @@ namespace ASCOM.EQ500X
                         adjustment = ra_adjust < dec_adjust ? dec_adjust : ra_adjust;
 
                         // If RA was moving but now would be moving at the wrong rate, stop it
-                        if (ra_adjust != adjustment)
+                        if (ra_adjust != adjustment || ra_adjust != previous_adjustment)
                         {
                             if (RAmIncrease) { CmdString += ":Qe#"; RAmIncrease = false; }
                             if (RAmDecrease) { CmdString += ":Qw#"; RAmDecrease = false; }
                         }
 
                         // If DEC was moving but now would be moving at the wrong rate, stop it
-                        if (dec_adjust != adjustment)
+                        if (dec_adjust != adjustment || dec_adjust != previous_adjustment)
                         {
                             if (DECmDecrease) { CmdString += ":Qn#"; DECmDecrease = false; }
                             if (DECmIncrease) { CmdString += ":Qs#"; DECmIncrease = false; }
