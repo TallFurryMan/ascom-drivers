@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Resources;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -10,9 +11,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("ASCOM.EQ500X.Telescope")]
 [assembly: AssemblyDescription("ASCOM Telescope driver for EQ500X")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("The ASCOM Initiative")]
+[assembly: AssemblyCompany("Eric Dejouhanet AE")]
 [assembly: AssemblyProduct("ASCOM Telescope driver for EQ500X")]
-[assembly: AssemblyCopyright("Copyright © 2019 The ASCOM Initiative")]
+[assembly: AssemblyCopyright("Copyright © 2019 Eric Dejouhanet")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -35,7 +36,9 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 //
 // TODO - Set your driver's version here
-[assembly: AssemblyVersion("6.4.0.0")]
-[assembly: AssemblyFileVersion("6.4.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
 
 [assembly: InternalsVisibleTo("ascom-eq500x-test, PublicKey=0024000004800000940000000602000000240000525341310004000001000100256889eb9edbeddbf4c794944a1c08190f533d29a411fa854e8ee31077e1d07daea26d53ad9536a32e9ba2f6093b05e70ba8d7ddeebcf0b568bc7527f068da7677fb1a928d32211d509e5f78d25e3abc6c4fde594c18c6a313b58bedfb8b4b7520ed5d2fe6ba38dd6f63260e972833ecb911971008b55ad6f62ab80d9181d8b4")]
+[assembly: NeutralResourcesLanguage("en-150")]
+
