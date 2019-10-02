@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Contracts;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -11,16 +13,18 @@ namespace ASCOM.EQ500X
     {
         // One degree, one arcminute, one arcsecond
         const double ONEDEGREE = 1.0;
-        const double ARCMINUTE = ONEDEGREE / 60.0;
+        //const double ARCMINUTE = ONEDEGREE / 60.0;
         const double ARCSECOND = ONEDEGREE / 3600.0;
 
         // This is the minimum detectable movement in RA/DEC
         readonly double RA_GRANULARITY = Math.Round((15.0 * ARCSECOND) * 3600.0, MidpointRounding.AwayFromZero) / 3600.0;
         readonly double DEC_GRANULARITY = Math.Round((1.0 * ARCSECOND) * 3600.0, MidpointRounding.AwayFromZero) / 3600.0;
 
-        const String MechanicalPoint_DEC_FormatR = "+DD:MM:SS";
-        const String MechanicalPoint_DEC_FormatW = "+DDD:MM:SS";
-        const String MechanicalPoint_RA_Format = "HH:MM:SS";
+        const string MechanicalPoint_DEC_FormatR = "+DD:MM:SS";
+        //const string MechanicalPoint_DEC_FormatW = "+DDD:MM:SS";
+        const string MechanicalPoint_RA_Format = "HH:MM:SS";
+
+        private readonly IFormatProvider formatProvider = new CultureInfo("en-GB");
 
         public MechanicalPoint(double ra, double dec)
         {
@@ -124,15 +128,16 @@ namespace ASCOM.EQ500X
         }
 
         public enum PointingStates { POINTING_NORMAL, POINTING_BEYOND_POLE }
+
         public PointingStates PointingState
         {
             get { return _pointingState; }
             set { _pointingState = value; }
         }
 
-        public bool parseStringDEC(String s)
+        public bool parseStringDEC(string s)
         {
-            if (s.Length < MechanicalPoint_DEC_FormatR.Length - 1)
+            if (null == s || s.Length < MechanicalPoint_DEC_FormatR.Length - 1)
                 return true;
 
             // Mount replies to "#GD:" with "sDD:MM:SS".
@@ -151,7 +156,7 @@ namespace ASCOM.EQ500X
             if (4 == dms.Groups[1].Value.Length)
             {
                 // Sign is processed when DMS is consolidated
-                degrees += int.Parse(dms.Groups[1].Value.Substring(1,3));
+                degrees += int.Parse(dms.Groups[1].Value.Substring(1, 3), formatProvider);
             }
             else
             {
@@ -173,12 +178,12 @@ namespace ASCOM.EQ500X
                     case 'G': degrees += 230; break;
                     case 'H': degrees += 240; break;
                     case 'I': degrees += 250; break;
-                    default: degrees += 10 * int.Parse(dms.Groups[1].Value[1].ToString()); break;
+                    default: degrees += 10 * int.Parse(dms.Groups[1].Value[1].ToString(formatProvider), formatProvider); break;
                 }
-                degrees += int.Parse(dms.Groups[1].Value[2].ToString());
+                degrees += int.Parse(dms.Groups[1].Value[2].ToString(formatProvider), formatProvider);
             }
-            int minutes = int.Parse(dms.Groups[3].Value);
-            int seconds = int.Parse(dms.Groups[4].Value);
+            int minutes = int.Parse(dms.Groups[3].Value, formatProvider);
+            int seconds = int.Parse(dms.Groups[4].Value, formatProvider);
 
             _DECm = (dms.Groups[1].Value[0] == '-' ? -1 : +1) * (degrees * 3600 + minutes * 60 + seconds);
 
@@ -190,9 +195,9 @@ namespace ASCOM.EQ500X
 
             return false;
         }
-        public bool parseStringRA(String s)
+        public bool parseStringRA(string s)
         {
-            if (s.Length < MechanicalPoint_RA_Format.Length - 1)
+            if (null == s || s.Length < MechanicalPoint_RA_Format.Length - 1)
                 return true;
 
             // Mount replies to "#GR:" with "HH:MM:SS".
@@ -202,9 +207,9 @@ namespace ASCOM.EQ500X
             Match m = Regex.Match(s, @"(\d{2})[^\d](\d{2})[^\d](\d{2})");
             if (m.Success)
             {
-                int hours = int.Parse(m.Groups[1].Value);
-                int minutes = int.Parse(m.Groups[2].Value);
-                int seconds = int.Parse(m.Groups[3].Value);
+                int hours = int.Parse(m.Groups[1].Value, formatProvider);
+                int minutes = int.Parse(m.Groups[2].Value, formatProvider);
+                int seconds = int.Parse(m.Groups[3].Value, formatProvider);
 
                 //_RAm = (    (_pierSide == PIER_WEST ? -12*3600 : +0) + 24*3600 +
                 _RAm = (24 * 3600 + (hours % 24) * 3600 + minutes * 60 + seconds) % (24 * 3600);
@@ -213,7 +218,7 @@ namespace ASCOM.EQ500X
 
             return true;
         }
-        public String toStringDEC(ref String s)
+        public string toStringDEC(ref string s)
         {
             // See /test/test_eq500xdriver.cpp for description of DEC conversion
 
@@ -227,7 +232,7 @@ namespace ASCOM.EQ500X
 
             return s = $"{sign}{degrees:000}:{minutes:00}:{seconds:00}";
         }
-        public String toStringRA(ref String s)
+        public string toStringRA(ref string s)
         {
             // See /test/test_eq500xdriver.cpp for description of RA conversion
 
@@ -239,7 +244,7 @@ namespace ASCOM.EQ500X
             return s = $"{hours:D2}:{minutes:D2}:{seconds:D2}";
         }
 
-        public String toStringDEC_Sim(ref String s)
+        public string toStringDEC_Sim(ref string s)
         {
             // See /test/test_eq500xdriver.cpp for description of DEC conversion
 
@@ -251,7 +256,7 @@ namespace ASCOM.EQ500X
             if (degrees < -255 || +255 < degrees)
                 return null;
 
-            char high_digit = '0';
+            char high_digit;
             if (-100 < degrees && degrees < 100)
             {
                 high_digit = (char)((int)'0' + Math.Abs(degrees) / 10);
@@ -279,11 +284,13 @@ namespace ASCOM.EQ500X
 
             char low_digit = (char)((int)'0' + (Math.Abs(degrees) % 10));
 
-            return s = String.Format("{0}{1}{2}:{3:D2}:{4:D2}", sign, high_digit, low_digit, minutes, seconds);
+            return s = string.Format(formatProvider, "{0}{1}{2}:{3:D2}:{4:D2}", sign, high_digit, low_digit, minutes, seconds);
         }
 
         public double RA_degrees_to(MechanicalPoint b)
         {
+            Contract.Requires(null != b);
+
             // RA is circular, DEC is not
             // We have hours and not degrees because that's what the mount is handling in terms of precision
             // We need to be cautious, as if we were to use real degrees, the RA movement would need to be 15 times more precise
@@ -294,12 +301,18 @@ namespace ASCOM.EQ500X
         }
         public double DEC_degrees_to(MechanicalPoint b)
         {
+            Contract.Requires(null != b);
+
             // RA is circular, DEC is not
-            return (double)(b._DECm - _DECm) / 3600.0;
+            return (b._DECm - _DECm) / 3600.0;
         }
 
-        public static double operator -(MechanicalPoint a, MechanicalPoint b)
+        public static double operator -(MechanicalPoint a, MechanicalPoint b) => Subtract(a, b);
+
+        public static double Subtract(MechanicalPoint a, MechanicalPoint b)
         {
+            Contract.Requires(null != a && null != b);
+
             double ra_distance = a.RA_degrees_to(b);
             double dec_distance = a.DEC_degrees_to(b);
             // FIXME: Incorrect distance calculation, but enough for our purpose
@@ -308,15 +321,15 @@ namespace ASCOM.EQ500X
 
         public static bool operator !=(MechanicalPoint a, MechanicalPoint b)
         {
-            return !a.Equals(b);
+            return (null == a || null == b) ? false : !a.Equals(b);
         }
 
         public static bool operator ==(MechanicalPoint a, MechanicalPoint b)
         {
-            return a.Equals(b);
+            return (null == a || null == b) ? false : a.Equals(b);
         }
 
-        public override bool Equals(Object o)
+        public override bool Equals(object o)
         {
             return (o is MechanicalPoint b) && !((_pointingState != b._pointingState) || (RA_GRANULARITY <= Math.Abs(RA_degrees_to(b))) || (DEC_GRANULARITY <= Math.Abs(DEC_degrees_to(b))));
         }
@@ -326,7 +339,7 @@ namespace ASCOM.EQ500X
             return Tuple.Create(PointingState, _RAm, _DECm).GetHashCode();
         }
 
-        protected PointingStates _pointingState;
-        protected long _RAm, _DECm;
+        private PointingStates _pointingState;
+        private long _RAm, _DECm;
     }
 }

@@ -19,6 +19,8 @@ namespace ASCOM.EQ500X
         private const string m_DMSRegex = @"\d+[° ]+(\d+[' ]+(\d+["" ]*)*)*";
         private static readonly char[] m_ElevationSymbols = { ' ', 'm' };
 
+        private readonly IFormatProvider formatProvider = new CultureInfo("en-GB", true);
+
         public SetupDialogForm()
         {
             InitializeComponent();
@@ -69,7 +71,7 @@ namespace ASCOM.EQ500X
             }
             this.LongitudeBox.Text = m_Util.DegreesToDMS(Telescope.m_LocationProfile.Longitude);
             this.LatitudeBox.Text = m_Util.DegreesToDMS(Telescope.m_LocationProfile.Latitude);
-            this.ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString() + " m";
+            this.ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString(formatProvider) + " m";
         }
 
         private void LongitudeBox_Validating(object sender, CancelEventArgs e)
@@ -77,7 +79,7 @@ namespace ASCOM.EQ500X
             try
             {
                 Match m = Regex.Match(LongitudeBox.Text, m_DMSRegex);
-                double value = m.Success ? m_Util.DMSToDegrees(LongitudeBox.Text) : double.Parse(LongitudeBox.Text, NumberStyles.Number);
+                double value = m.Success ? m_Util.DMSToDegrees(LongitudeBox.Text) : double.Parse(LongitudeBox.Text, NumberStyles.Number, formatProvider);
                 Telescope.m_LocationProfile.Longitude = value;
                 LongitudeBox.Text = m_Util.DegreesToDMS(value);
             }
@@ -93,7 +95,7 @@ namespace ASCOM.EQ500X
             try
             {
                 Match m = Regex.Match(LongitudeBox.Text, m_DMSRegex);
-                double value = m.Success ? m_Util.DMSToDegrees(LatitudeBox.Text) : double.Parse(LatitudeBox.Text, NumberStyles.Number);
+                double value = m.Success ? m_Util.DMSToDegrees(LatitudeBox.Text) : double.Parse(LatitudeBox.Text, NumberStyles.Number, formatProvider);
                 Telescope.m_LocationProfile.Latitude = value;
                 LatitudeBox.Text = m_Util.DegreesToDMS(value);
             }
@@ -108,9 +110,9 @@ namespace ASCOM.EQ500X
         {
             try
             {
-                double value = double.Parse(ElevationBox.Text.TrimEnd(m_ElevationSymbols), NumberStyles.Number);
+                double value = double.Parse(ElevationBox.Text.TrimEnd(m_ElevationSymbols), NumberStyles.Number, formatProvider);
                 Telescope.m_LocationProfile.Elevation = value;
-                ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString() + " m";
+                ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString(formatProvider) + " m";
             }
             catch (Exception)
             {

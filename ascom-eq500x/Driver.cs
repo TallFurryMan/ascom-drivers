@@ -113,9 +113,9 @@ namespace ASCOM.EQ500X
         private MechanicalPoint targetMechPosition = new MechanicalPoint();
         private bool m_TargetRightAscension_set = false;
         private bool m_TargetDeclination_set = false;
-        private readonly string MechanicalPoint_DEC_FormatR = "+DD:MM:SS";
-        private readonly string MechanicalPoint_DEC_FormatW = "+DDD:MM:SS";
-        private readonly string MechanicalPoint_RA_Format = "HH:MM:SS";
+        //private readonly string MechanicalPoint_DEC_FormatR = "+DD:MM:SS";
+        //private readonly string MechanicalPoint_DEC_FormatW = "+DDD:MM:SS";
+        //private readonly string MechanicalPoint_RA_Format = "HH:MM:SS";
 
         private class SimEQ500X
         {
@@ -150,7 +150,7 @@ namespace ASCOM.EQ500X
                         m_Elevation = value;
                         elevation_set = true;
                     }
-                    else throw new ASCOM.InvalidValueException("SiteElevation", value.ToString(), "-300", "+100000");
+                    else throw new InvalidValueException("SiteElevation", value.ToString(), "-300", "+100000");
                 }
             }
             public double Latitude
@@ -164,7 +164,7 @@ namespace ASCOM.EQ500X
                         m_Latitude = value;
                         latitude_set = true;
                     }
-                    else throw new ASCOM.InvalidValueException("SiteLatitude", value.ToString(), "-90", "+90");
+                    else throw new InvalidValueException("SiteLatitude", value.ToString(), "-90", "+90");
                 }
             }
             public double Longitude
@@ -179,7 +179,7 @@ namespace ASCOM.EQ500X
                         m_Longitude = value;
                         longitude_set = true;
                     }
-                    else throw new ASCOM.InvalidValueException("SiteLongitude", value.ToString(), "-180", "+180");
+                    else throw new InvalidValueException("SiteLongitude", value.ToString(), "-180", "+180");
                 }
             }
         };
@@ -248,8 +248,8 @@ namespace ASCOM.EQ500X
 
         public string Action(string actionName, string actionParameters)
         {
-            LogMessage("", "Action {0}, parameters {1} not implemented", actionName, actionParameters);
-            throw new ASCOM.ActionNotImplementedException("Action " + actionName + " is not implemented by this driver");
+            LogMessage("Action", "Action {0}, parameters {1} not implemented", actionName, actionParameters);
+            throw new ActionNotImplementedException("Action " + actionName + " is not implemented by this driver");
         }
 
         public void CommandBlind(string command, bool raw)
@@ -258,7 +258,7 @@ namespace ASCOM.EQ500X
             // Call CommandString and return as soon as it finishes
             this.CommandString(command, raw);
             // or
-            throw new ASCOM.MethodNotImplementedException("CommandBlind");
+            throw new MethodNotImplementedException("CommandBlind");
             // DO NOT have both these sections!  One or the other
         }
 
@@ -279,7 +279,7 @@ namespace ASCOM.EQ500X
             string ret = CommandString(command, raw);
             // TODO decode the return string and return true or false
             // or
-            throw new ASCOM.MethodNotImplementedException("CommandBool");
+            throw new MethodNotImplementedException("CommandBool");
             // DO NOT have both these sections!  One or the other
         }
 
@@ -309,7 +309,7 @@ namespace ASCOM.EQ500X
                     }
                 }
 
-            throw new ASCOM.MethodNotImplementedException(String.Format("CommandString - {0}", command));
+            throw new MethodNotImplementedException(String.Format("CommandString - {0}", command));
         }
 
         protected virtual void Dispose(bool disposing)
@@ -317,6 +317,16 @@ namespace ASCOM.EQ500X
             // Disconnect the device
             if (IsConnected)
                 Connected = false;
+
+            if (null != m_Port)
+                m_Port.Dispose();
+
+            if (null != m_ReadScopeTimer)
+                m_ReadScopeTimer.Dispose();
+            if (null != m_RAGuideTaskCancellation)
+                m_RAGuideTaskCancellation.Dispose();
+            if (null != m_DECGuideTaskCancellation)
+                m_DECGuideTaskCancellation.Dispose();
 
             // Clean up the tracelogger and util objects
             if (null != tl)
@@ -445,7 +455,7 @@ namespace ASCOM.EQ500X
             set
             {
                 LogMessage("Simulation Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("Simulated", true);
+                throw new PropertyNotImplementedException("Simulated", true);
             }
         }
 
@@ -541,7 +551,7 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("Altitude", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("Altitude", false);
+                throw new PropertyNotImplementedException("Altitude", false);
             }
         }
 
@@ -550,7 +560,7 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("ApertureArea Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("ApertureArea", false);
+                throw new PropertyNotImplementedException("ApertureArea", false);
             }
         }
 
@@ -559,7 +569,7 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("ApertureDiameter Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("ApertureDiameter", false);
+                throw new PropertyNotImplementedException("ApertureDiameter", false);
             }
         }
 
@@ -592,7 +602,7 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("Azimuth Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("Azimuth", false);
+                throw new PropertyNotImplementedException("Azimuth", false);
             }
         }
 
@@ -761,7 +771,7 @@ namespace ASCOM.EQ500X
                     if (!connectedState)
                         return 0;
                     if (getCurrentMechanicalPosition(ref currentMechPosition))
-                        throw new ASCOM.ValueNotSetException("Declination");
+                        throw new ValueNotSetException("Declination");
                     double declination = currentMechPosition.DECsky;
                     LogMessage("Declination", "Get - " + utilities.DegreesToDMS(declination, ":", ":"));
                     return declination;
@@ -780,14 +790,14 @@ namespace ASCOM.EQ500X
             set
             {
                 LogMessage("DeclinationRate Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("DeclinationRate", true);
+                throw new PropertyNotImplementedException("DeclinationRate", true);
             }
         }
 
         public PierSide DestinationSideOfPier(double RightAscension, double Declination)
         {
             LogMessage("DestinationSideOfPier Get", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("DestinationSideOfPier");
+            throw new MethodNotImplementedException("DestinationSideOfPier");
         }
 
         public bool DoesRefraction
@@ -795,12 +805,12 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("DoesRefraction Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("DoesRefraction", false);
+                throw new PropertyNotImplementedException("DoesRefraction", false);
             }
             set
             {
                 LogMessage("DoesRefraction Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("DoesRefraction", true);
+                throw new PropertyNotImplementedException("DoesRefraction", true);
             }
         }
 
@@ -817,7 +827,7 @@ namespace ASCOM.EQ500X
         public void FindHome()
         {
             LogMessage("FindHome", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("FindHome");
+            throw new MethodNotImplementedException("FindHome");
         }
 
         public double FocalLength
@@ -825,7 +835,7 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("FocalLength Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("FocalLength", false);
+                throw new PropertyNotImplementedException("FocalLength", false);
             }
         }
 
@@ -834,12 +844,12 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("GuideRateDeclination Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("GuideRateDeclination", false);
+                throw new PropertyNotImplementedException("GuideRateDeclination", false);
             }
             set
             {
                 LogMessage("GuideRateDeclination Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("GuideRateDeclination", true);
+                throw new PropertyNotImplementedException("GuideRateDeclination", true);
             }
         }
 
@@ -848,12 +858,12 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("GuideRateRightAscension Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("GuideRateRightAscension", false);
+                throw new PropertyNotImplementedException("GuideRateRightAscension", false);
             }
             set
             {
                 LogMessage("GuideRateRightAscension Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("GuideRateRightAscension", true);
+                throw new PropertyNotImplementedException("GuideRateRightAscension", true);
             }
         }
 
@@ -873,7 +883,7 @@ namespace ASCOM.EQ500X
             for (int i = 1; i < rates.Count + 1; i++)
                 if (rates[i].Minimum <= rate && rate <= rates[i].Maximum)
                     return (SlewRate)(i - 1);
-            throw new ASCOM.InvalidValueException($"Invalid axis rate {rate} on {axis.ToString()}");
+            throw new InvalidValueException($"Invalid axis rate {rate} on {axis.ToString()}");
         }
 
         public void MoveAxis(TelescopeAxes Axis, double Rate)
@@ -883,7 +893,7 @@ namespace ASCOM.EQ500X
                 case TelescopeAxes.axisPrimary: break;
                 case TelescopeAxes.axisSecondary: break;
                 default:
-                    throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
+                    throw new InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
             }
 
             if (0.0 == Rate)
@@ -902,7 +912,7 @@ namespace ASCOM.EQ500X
                             {
                                 if (0 != m_RASlewRate)
                                     if (4 != sendCmd(":Q" + (0 < m_RASlewRate ? 'w' : 'e') + '#'))
-                                        throw new ASCOM.DriverException($"MoveAxis - Failed stopping mount axis {Axis.ToString()}");
+                                        throw new DriverException($"MoveAxis - Failed stopping mount axis {Axis.ToString()}");
                                 if (isSimulated)
                                     simEQ500X.isMovingAxisPrimary = false;
                             }
@@ -932,7 +942,7 @@ namespace ASCOM.EQ500X
                             {
                                 if (0 != m_DECSlewRate)
                                     if (4 != sendCmd(":Q" + (0 < m_DECSlewRate ? 'n' : 's') + '#'))
-                                        throw new ASCOM.DriverException($"MoveAxis - Failed stopping mount axis {Axis.ToString()}");
+                                        throw new DriverException($"MoveAxis - Failed stopping mount axis {Axis.ToString()}");
                                 if (isSimulated)
                                     simEQ500X.isMovingAxisSecondary = false;
                             }
@@ -958,7 +968,7 @@ namespace ASCOM.EQ500X
                             break;
 
                         default:
-                            throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
+                            throw new InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
                     }
 
                     if (0 == m_RASlewRate && 0 == m_DECSlewRate)
@@ -998,7 +1008,7 @@ namespace ASCOM.EQ500X
                         SlewRate matchingRate = findSlewRate(Axis, Math.Abs(Rate));
 
                         if (TrackState.MOVING == m_TrackState && matchingRate != m_SlewRate)
-                            throw new ASCOM.InvalidOperationException($"MoveAxis - Mount is already moving at {m_SlewRate.ToString()}");
+                            throw new InvalidOperationException($"MoveAxis - Mount is already moving at {m_SlewRate.ToString()}");
 
                         CheckConnected("MoveAxis requires hardware connection");
 
@@ -1006,20 +1016,20 @@ namespace ASCOM.EQ500X
                         {
                             case TelescopeAxes.axisPrimary:
                                 if (4 != sendCmd(":M" + (0 < Rate ? 'w' : 'e') + '#'))
-                                    throw new ASCOM.DriverException($"MoveAxis - Failed moving mount axis {Axis.ToString()} at rate {matchingRate.ToString()}"); ;
+                                    throw new DriverException($"MoveAxis - Failed moving mount axis {Axis.ToString()} at rate {matchingRate.ToString()}"); ;
                                 m_RASlewRate = Rate;
                                 if (isSimulated) simEQ500X.isMovingAxisPrimary = true;
                                 break;
 
                             case TelescopeAxes.axisSecondary:
                                 if (4 != sendCmd(":M" + (0 < Rate ? 'n' : 's') + '#'))
-                                    throw new ASCOM.DriverException($"MoveAxis - Failed moving mount axis {Axis.ToString()} at rate {matchingRate.ToString()}");
+                                    throw new DriverException($"MoveAxis - Failed moving mount axis {Axis.ToString()} at rate {matchingRate.ToString()}");
                                 m_DECSlewRate = Rate;
                                 if (isSimulated) simEQ500X.isMovingAxisSecondary = true;
                                 break;
 
                             default:
-                                throw new ASCOM.InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
+                                throw new InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
                         }
 
                         if (TrackState.TRACKING == m_TrackState)
@@ -1029,7 +1039,7 @@ namespace ASCOM.EQ500X
 
                         m_TrackState = TrackState.MOVING;
                     }
-                    else throw new ASCOM.InvalidOperationException($"MoveAxis - Not tracking");
+                    else throw new InvalidOperationException($"MoveAxis - Not tracking");
                 }
             }
         }
@@ -1037,7 +1047,7 @@ namespace ASCOM.EQ500X
         public void Park()
         {
             LogMessage("Park", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("Park");
+            throw new MethodNotImplementedException("Park");
         }
 
         private void completeGuideCommand(GuideDirections direction)
@@ -1168,13 +1178,13 @@ namespace ASCOM.EQ500X
 
                         default:
                             updateSlewRate(savedSlewRateIndex);
-                            throw new ASCOM.InvalidValueException($"PulseGuide - Invalid direction {Direction.ToString()}");
+                            throw new InvalidValueException($"PulseGuide - Invalid direction {Direction.ToString()}");
                     }
 
                     // Track state can be changed as final instruction because we locked the internals, thus won't get disturbed
                     m_TrackState = TrackState.GUIDING;
                 }
-                else throw new ASCOM.InvalidOperationException($"PulseGuide - Not tracking");
+                else throw new InvalidOperationException($"PulseGuide - Not tracking");
             }
         }
 
@@ -1187,7 +1197,7 @@ namespace ASCOM.EQ500X
                     if (!connectedState)
                         return 0;
                     if (getCurrentMechanicalPosition(ref currentMechPosition))
-                        throw new ASCOM.ValueNotSetException("Declination");
+                        throw new ValueNotSetException("Declination");
                     double rightAscension = currentMechPosition.RAsky;
                     LogMessage("RightAscension", "Get - " + utilities.HoursToHMS(rightAscension));
                     return rightAscension;
@@ -1206,14 +1216,14 @@ namespace ASCOM.EQ500X
             set
             {
                 LogMessage("RightAscensionRate Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("RightAscensionRate", true);
+                throw new PropertyNotImplementedException("RightAscensionRate", true);
             }
         }
 
         public void SetPark()
         {
             LogMessage("SetPark", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SetPark");
+            throw new MethodNotImplementedException("SetPark");
         }
 
         public PierSide SideOfPier
@@ -1231,7 +1241,7 @@ namespace ASCOM.EQ500X
             set
             {
                 LogMessage("SideOfPier Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SideOfPier", true);
+                throw new PropertyNotImplementedException("SideOfPier", true);
             }
         }
 
@@ -1241,7 +1251,7 @@ namespace ASCOM.EQ500X
             {
                 // Now using NOVAS 3.1
                 double siderealTime = 0.0;
-                using (var novas = new ASCOM.Astrometry.NOVAS.NOVAS31())
+                using (var novas = new Astrometry.NOVAS.NOVAS31())
                 {
                     var jd = utilities.DateUTCToJulian(DateTime.UtcNow);
                     novas.SiderealTime(jd, 0, novas.DeltaT(jd),
@@ -1273,7 +1283,7 @@ namespace ASCOM.EQ500X
                     LogMessage("SiteElevation Get", String.Format("Elevation {0}", m_LocationProfile.Elevation));
                     return m_LocationProfile.Elevation;
                 }
-                else throw new ASCOM.InvalidOperationException("SiteElevation - Not initialized");
+                else throw new InvalidOperationException("SiteElevation - Not initialized");
             }
             set
             {
@@ -1293,7 +1303,7 @@ namespace ASCOM.EQ500X
                     LogMessage("SiteElevation Get", String.Format("Elevation {0}", m_LocationProfile.Latitude));
                     return m_LocationProfile.Latitude;
                 }
-                else throw new ASCOM.InvalidOperationException("SiteLatitude - Not initialized");
+                else throw new InvalidOperationException("SiteLatitude - Not initialized");
             }
             set
             {
@@ -1313,7 +1323,7 @@ namespace ASCOM.EQ500X
                     LogMessage("SiteLongitude Get", String.Format("Longitude {0}", m_LocationProfile.Longitude));
                     return m_LocationProfile.Longitude;
                 }
-                else throw new ASCOM.InvalidOperationException("SiteLongitude - Not initialized");
+                else throw new InvalidOperationException("SiteLongitude - Not initialized");
             }
             set
             {
@@ -1341,36 +1351,36 @@ namespace ASCOM.EQ500X
             get
             {
                 LogMessage("SlewSettleTime Get", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SlewSettleTime", false);
+                throw new PropertyNotImplementedException("SlewSettleTime", false);
             }
             set
             {
                 LogMessage("SlewSettleTime Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("SlewSettleTime", true);
+                throw new PropertyNotImplementedException("SlewSettleTime", true);
             }
         }
 
         public void SlewToAltAz(double Azimuth, double Altitude)
         {
             LogMessage("SlewToAltAz", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SlewToAltAz");
+            throw new MethodNotImplementedException("SlewToAltAz");
         }
 
         public void SlewToAltAzAsync(double Azimuth, double Altitude)
         {
             LogMessage("SlewToAltAzAsync", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SlewToAltAzAsync");
+            throw new MethodNotImplementedException("SlewToAltAzAsync");
         }
 
         public void SlewToCoordinatesAsync(double ra, double dec)
         {
             if (ra < 0 || +24 < ra)
             {
-                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - RightAscension", ra.ToString(), "-24", "+24");
+                throw new InvalidValueException("SlewToCoordinatesAsync - RightAscension", ra.ToString(), "-24", "+24");
             }
             else if (dec < -90 || +90 < dec)
             {
-                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - Declination", dec.ToString(), "-90", "+90");
+                throw new InvalidValueException("SlewToCoordinatesAsync - Declination", dec.ToString(), "-90", "+90");
             }
             else
             {
@@ -1479,29 +1489,29 @@ namespace ASCOM.EQ500X
         public void SyncToAltAz(double Azimuth, double Altitude)
         {
             LogMessage("SyncToAltAz", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("SyncToAltAz");
+            throw new MethodNotImplementedException("SyncToAltAz");
         }
 
         public void SyncToCoordinates(double RightAscension, double Declination)
         {
             if (RightAscension < 0 || +24 < RightAscension)
             {
-                throw new ASCOM.InvalidValueException("SyncToCoordinates - RightAscension", RightAscension.ToString(), "-24", "+24");
+                throw new InvalidValueException("SyncToCoordinates - RightAscension", RightAscension.ToString(), "-24", "+24");
             }
             else if (Declination < -90 || +90 < Declination)
             {
-                throw new ASCOM.InvalidValueException("SyncToCoordinates - Declination", Declination.ToString(), "-90", "+90");
+                throw new InvalidValueException("SyncToCoordinates - Declination", Declination.ToString(), "-90", "+90");
             }
             else
             {
                 if (TrackState.TRACKING != m_TrackState)
-                    throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
+                    throw new InvalidOperationException("SyncToCoordinates - mount is not tracking");
 
                 LogMessage("SyncToCoordinates", String.Format("Set RA:{0:F2} DEC:{1:F2}", RightAscension, Declination));
 
                 lock (internalLock)
                     if (!Sync(RightAscension, Declination))
-                        throw new ASCOM.DriverException("SyncToCoordinates");
+                        throw new DriverException("SyncToCoordinates");
             }
         }
 
@@ -1509,22 +1519,22 @@ namespace ASCOM.EQ500X
         {
             if (!m_TargetRightAscension_set)
             {
-                throw new ASCOM.ValueNotSetException("SyncToTarget - RightAscension not set");
+                throw new ValueNotSetException("SyncToTarget - RightAscension not set");
             }
             else if (!m_TargetDeclination_set)
             {
-                throw new ASCOM.ValueNotSetException("SyncToTarget - Declination not set");
+                throw new ValueNotSetException("SyncToTarget - Declination not set");
             }
             else
             {
                 if (TrackState.TRACKING != m_TrackState)
-                    throw new ASCOM.InvalidOperationException("SyncToCoordinates - mount is not tracking");
+                    throw new InvalidOperationException("SyncToCoordinates - mount is not tracking");
 
                 LogMessage("SyncToTarget", String.Format("Set RA:{0:F2} DEC:{1:F2}", targetMechPosition.RAsky, targetMechPosition.DECsky));
 
                 lock (internalLock)
                     if (!Sync(targetMechPosition.RAsky, targetMechPosition.DECsky))
-                        throw new ASCOM.DriverException("SyncToCoordinates");
+                        throw new DriverException("SyncToCoordinates");
             }
         }
 
@@ -1537,12 +1547,12 @@ namespace ASCOM.EQ500X
                     LogMessage("TargetDeclination Get", $"Target DEC {targetMechPosition.DECsky}");
                     return targetMechPosition.DECsky;
                 }
-                else throw new ASCOM.InvalidOperationException("TargetDeclination - not set");
+                else throw new InvalidOperationException("TargetDeclination - not set");
             }
             set
             {
                 if (value < -90 || +90 < value)
-                    throw new ASCOM.InvalidValueException("TargetDeclination", Declination.ToString(), "-90", "+90");
+                    throw new InvalidValueException("TargetDeclination", Declination.ToString(), "-90", "+90");
 
                 LogMessage("TargetDeclination Set", $"Target DEC {value}");
                 targetMechPosition.DECsky = value;
@@ -1559,12 +1569,12 @@ namespace ASCOM.EQ500X
                     LogMessage("TargetRightAscension Get", $"Target RA {targetMechPosition.RAsky}");
                     return targetMechPosition.RAsky;
                 }
-                else throw new ASCOM.InvalidOperationException("TargetRightAscension - not set");
+                else throw new InvalidOperationException("TargetRightAscension - not set");
             }
             set
             {
                 if (value < 0 || +24 < value)
-                    throw new ASCOM.InvalidValueException("TargetRightAscension", RightAscension.ToString(), "-24", "+24");
+                    throw new InvalidValueException("TargetRightAscension", RightAscension.ToString(), "-24", "+24");
 
                 LogMessage("TargetRightAscension Set", $"Target RA {value}");
                 targetMechPosition.RAsky = value;
@@ -1584,7 +1594,7 @@ namespace ASCOM.EQ500X
             }
             set
             {
-                throw new ASCOM.PropertyNotImplementedException("Tracking - cannot change tracking state");
+                throw new PropertyNotImplementedException("Tracking - cannot change tracking state");
             }
         }
 
@@ -1599,7 +1609,7 @@ namespace ASCOM.EQ500X
             {
                 LogMessage("TrackingRate Set", $"Set - {value}");
                 if (DriveRates.driveSidereal != value)
-                    throw new ASCOM.InvalidValueException("TrackingRate", value.ToString(), DriveRates.driveSidereal.ToString(), DriveRates.driveSidereal.ToString());
+                    throw new InvalidValueException("TrackingRate", value.ToString(), DriveRates.driveSidereal.ToString(), DriveRates.driveSidereal.ToString());
             }
         }
 
@@ -1628,14 +1638,14 @@ namespace ASCOM.EQ500X
             set
             {
                 LogMessage("UTCDate Set", "Not implemented");
-                throw new ASCOM.PropertyNotImplementedException("UTCDate", true);
+                throw new PropertyNotImplementedException("UTCDate", true);
             }
         }
 
         public void Unpark()
         {
             LogMessage("Unpark", "Not implemented");
-            throw new ASCOM.MethodNotImplementedException("Unpark");
+            throw new MethodNotImplementedException("Unpark");
         }
 
 #endregion
@@ -1656,7 +1666,7 @@ namespace ASCOM.EQ500X
         /// <param name="bRegister">If <c>true</c>, registers the driver, otherwise unregisters it.</param>
         private static void RegUnregASCOM(bool bRegister)
         {
-            using (var P = new ASCOM.Utilities.Profile())
+            using (var P = new Profile())
             {
                 P.DeviceType = "Telescope";
                 if (bRegister)
@@ -1738,7 +1748,7 @@ namespace ASCOM.EQ500X
         {
             if (!IsConnected)
             {
-                throw new ASCOM.NotConnectedException(message);
+                throw new NotConnectedException(message);
             }
         }
 
@@ -2235,11 +2245,11 @@ namespace ASCOM.EQ500X
         {
             if (ra < -24 || +24 < ra)
             {
-                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - RightAscension", ra.ToString(), "24-", "+24");
+                throw new InvalidValueException("SlewToCoordinatesAsync - RightAscension", ra.ToString(), "24-", "+24");
             }
             else if (dec < -90 || +90 < dec)
             {
-                throw new ASCOM.InvalidValueException("SlewToCoordinatesAsync - Declination", dec.ToString(), "-90", "+90");
+                throw new InvalidValueException("SlewToCoordinatesAsync - Declination", dec.ToString(), "-90", "+90");
             }
             else
             {
