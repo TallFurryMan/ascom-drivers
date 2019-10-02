@@ -33,38 +33,42 @@ namespace ASCOM.EQ500X
             this.cmdOK = new System.Windows.Forms.Button();
             this.cmdCancel = new System.Windows.Forms.Button();
             this.picASCOM = new System.Windows.Forms.PictureBox();
+            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.ReleaseslinkLabel = new System.Windows.Forms.LinkLabel();
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.ConnectionGroupBox = new System.Windows.Forms.GroupBox();
             this.label2 = new System.Windows.Forms.Label();
             this.chkTrace = new System.Windows.Forms.CheckBox();
             this.comboBoxComPort = new System.Windows.Forms.ComboBox();
-            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.GeographicalSiteGroupBox = new System.Windows.Forms.GroupBox();
-            this.ElevationLabel = new System.Windows.Forms.Label();
-            this.LatitudeLabel = new System.Windows.Forms.Label();
-            this.LongitudeLabel = new System.Windows.Forms.Label();
-            this.ElevationBox = new System.Windows.Forms.TextBox();
-            this.LatitudeBox = new System.Windows.Forms.TextBox();
             this.LongitudeBox = new System.Windows.Forms.TextBox();
-            this.ConnectionGroupBox = new System.Windows.Forms.GroupBox();
-            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.LatitudeBox = new System.Windows.Forms.TextBox();
+            this.ElevationBox = new System.Windows.Forms.TextBox();
+            this.LongitudeLabel = new System.Windows.Forms.Label();
+            this.LatitudeLabel = new System.Windows.Forms.Label();
+            this.ElevationLabel = new System.Windows.Forms.Label();
+            this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
-            this.flowLayoutPanel1.SuspendLayout();
-            this.GeographicalSiteGroupBox.SuspendLayout();
+            this.tableLayoutPanel1.SuspendLayout();
             this.ConnectionGroupBox.SuspendLayout();
+            this.GeographicalSiteGroupBox.SuspendLayout();
+            this.flowLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // cmdOK
             // 
-            this.cmdOK.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.cmdOK.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.cmdOK.Location = new System.Drawing.Point(3, 176);
+            this.cmdOK.Location = new System.Drawing.Point(3, 167);
             this.cmdOK.Name = "cmdOK";
-            this.cmdOK.Size = new System.Drawing.Size(93, 24);
+            this.cmdOK.Size = new System.Drawing.Size(87, 26);
             this.cmdOK.TabIndex = 0;
             this.cmdOK.Text = "OK";
             this.cmdOK.UseVisualStyleBackColor = true;
@@ -72,12 +76,13 @@ namespace ASCOM.EQ500X
             // 
             // cmdCancel
             // 
-            this.cmdCancel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.cmdCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.cmdCancel.Location = new System.Drawing.Point(3, 206);
+            this.cmdCancel.Location = new System.Drawing.Point(3, 199);
             this.cmdCancel.Name = "cmdCancel";
-            this.cmdCancel.Size = new System.Drawing.Size(93, 25);
+            this.cmdCancel.Size = new System.Drawing.Size(87, 26);
             this.cmdCancel.TabIndex = 1;
             this.cmdCancel.Text = "Cancel";
             this.cmdCancel.UseVisualStyleBackColor = true;
@@ -85,10 +90,10 @@ namespace ASCOM.EQ500X
             // 
             // picASCOM
             // 
-            this.picASCOM.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.picASCOM.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.picASCOM.Cursor = System.Windows.Forms.Cursors.Hand;
             this.picASCOM.Image = global::ASCOM.EQ500X.Properties.Resources.ASCOM;
-            this.picASCOM.Location = new System.Drawing.Point(42, 3);
+            this.picASCOM.Location = new System.Drawing.Point(22, 13);
             this.picASCOM.Name = "picASCOM";
             this.picASCOM.Size = new System.Drawing.Size(48, 56);
             this.picASCOM.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -96,6 +101,78 @@ namespace ASCOM.EQ500X
             this.picASCOM.TabStop = false;
             this.picASCOM.Click += new System.EventHandler(this.BrowseToAscom);
             this.picASCOM.DoubleClick += new System.EventHandler(this.BrowseToAscom);
+            // 
+            // splitContainer1
+            // 
+            this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.splitContainer1.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainer1.IsSplitterFixed = true;
+            this.splitContainer1.Location = new System.Drawing.Point(13, 13);
+            this.splitContainer1.Name = "splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            this.splitContainer1.Panel1.Controls.Add(this.flowLayoutPanel1);
+            // 
+            // splitContainer1.Panel2
+            // 
+            this.splitContainer1.Panel2.Controls.Add(this.tableLayoutPanel1);
+            this.splitContainer1.Size = new System.Drawing.Size(373, 234);
+            this.splitContainer1.SplitterDistance = 270;
+            this.splitContainer1.TabIndex = 8;
+            // 
+            // toolTip1
+            // 
+            this.toolTip1.AutomaticDelay = 100;
+            this.toolTip1.AutoPopDelay = 30000;
+            this.toolTip1.InitialDelay = 100;
+            this.toolTip1.ReshowDelay = 20;
+            this.toolTip1.ShowAlways = true;
+            // 
+            // ReleaseslinkLabel
+            // 
+            this.ReleaseslinkLabel.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.ReleaseslinkLabel.AutoSize = true;
+            this.ReleaseslinkLabel.Location = new System.Drawing.Point(21, 116);
+            this.ReleaseslinkLabel.Name = "ReleaseslinkLabel";
+            this.ReleaseslinkLabel.Size = new System.Drawing.Size(51, 13);
+            this.ReleaseslinkLabel.TabIndex = 4;
+            this.ReleaseslinkLabel.TabStop = true;
+            this.ReleaseslinkLabel.Text = "Releases";
+            this.ReleaseslinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.ReleaseslinkLabel_LinkClicked);
+            // 
+            // tableLayoutPanel1
+            // 
+            this.tableLayoutPanel1.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.tableLayoutPanel1.ColumnCount = 1;
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.Controls.Add(this.cmdCancel, 0, 3);
+            this.tableLayoutPanel1.Controls.Add(this.cmdOK, 0, 2);
+            this.tableLayoutPanel1.Controls.Add(this.ReleaseslinkLabel, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.picASCOM, 0, 0);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(3, 3);
+            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
+            this.tableLayoutPanel1.RowCount = 4;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(93, 228);
+            this.tableLayoutPanel1.TabIndex = 5;
+            // 
+            // ConnectionGroupBox
+            // 
+            this.ConnectionGroupBox.Controls.Add(this.comboBoxComPort);
+            this.ConnectionGroupBox.Controls.Add(this.chkTrace);
+            this.ConnectionGroupBox.Controls.Add(this.label2);
+            this.ConnectionGroupBox.Location = new System.Drawing.Point(3, 109);
+            this.ConnectionGroupBox.Name = "ConnectionGroupBox";
+            this.ConnectionGroupBox.Size = new System.Drawing.Size(234, 79);
+            this.ConnectionGroupBox.TabIndex = 1;
+            this.ConnectionGroupBox.TabStop = false;
+            this.ConnectionGroupBox.Text = "Hardware Connection";
             // 
             // label2
             // 
@@ -125,41 +202,9 @@ namespace ASCOM.EQ500X
             this.comboBoxComPort.Size = new System.Drawing.Size(90, 21);
             this.comboBoxComPort.TabIndex = 7;
             // 
-            // splitContainer1
-            // 
-            this.splitContainer1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.splitContainer1.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
-            this.splitContainer1.IsSplitterFixed = true;
-            this.splitContainer1.Location = new System.Drawing.Point(13, 13);
-            this.splitContainer1.Name = "splitContainer1";
-            // 
-            // splitContainer1.Panel1
-            // 
-            this.splitContainer1.Panel1.Controls.Add(this.flowLayoutPanel1);
-            // 
-            // splitContainer1.Panel2
-            // 
-            this.splitContainer1.Panel2.Controls.Add(this.picASCOM);
-            this.splitContainer1.Panel2.Controls.Add(this.cmdOK);
-            this.splitContainer1.Panel2.Controls.Add(this.cmdCancel);
-            this.splitContainer1.Size = new System.Drawing.Size(373, 234);
-            this.splitContainer1.SplitterDistance = 270;
-            this.splitContainer1.TabIndex = 8;
-            // 
-            // flowLayoutPanel1
-            // 
-            this.flowLayoutPanel1.Controls.Add(this.GeographicalSiteGroupBox);
-            this.flowLayoutPanel1.Controls.Add(this.ConnectionGroupBox);
-            this.flowLayoutPanel1.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(4, 3);
-            this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(237, 201);
-            this.flowLayoutPanel1.TabIndex = 0;
-            // 
             // GeographicalSiteGroupBox
             // 
+            this.GeographicalSiteGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.GeographicalSiteGroupBox.Controls.Add(this.ElevationLabel);
             this.GeographicalSiteGroupBox.Controls.Add(this.LatitudeLabel);
             this.GeographicalSiteGroupBox.Controls.Add(this.LongitudeLabel);
@@ -173,35 +218,23 @@ namespace ASCOM.EQ500X
             this.GeographicalSiteGroupBox.TabStop = false;
             this.GeographicalSiteGroupBox.Text = "Geographical Site";
             // 
-            // ElevationLabel
+            // LongitudeBox
             // 
-            this.ElevationLabel.AutoSize = true;
-            this.ElevationLabel.Location = new System.Drawing.Point(6, 74);
-            this.ElevationLabel.Name = "ElevationLabel";
-            this.ElevationLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-            this.ElevationLabel.Size = new System.Drawing.Size(57, 13);
-            this.ElevationLabel.TabIndex = 10;
-            this.ElevationLabel.Text = "Elevation";
+            this.LongitudeBox.Location = new System.Drawing.Point(91, 19);
+            this.LongitudeBox.Name = "LongitudeBox";
+            this.LongitudeBox.Size = new System.Drawing.Size(90, 20);
+            this.LongitudeBox.TabIndex = 0;
+            this.toolTip1.SetToolTip(this.LongitudeBox, resources.GetString("LongitudeBox.ToolTip"));
+            this.LongitudeBox.Validating += new System.ComponentModel.CancelEventHandler(this.LongitudeBox_Validating);
             // 
-            // LatitudeLabel
+            // LatitudeBox
             // 
-            this.LatitudeLabel.AutoSize = true;
-            this.LatitudeLabel.Location = new System.Drawing.Point(6, 48);
-            this.LatitudeLabel.Name = "LatitudeLabel";
-            this.LatitudeLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-            this.LatitudeLabel.Size = new System.Drawing.Size(51, 13);
-            this.LatitudeLabel.TabIndex = 9;
-            this.LatitudeLabel.Text = "Latitude";
-            // 
-            // LongitudeLabel
-            // 
-            this.LongitudeLabel.AutoSize = true;
-            this.LongitudeLabel.Location = new System.Drawing.Point(6, 22);
-            this.LongitudeLabel.Name = "LongitudeLabel";
-            this.LongitudeLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-            this.LongitudeLabel.Size = new System.Drawing.Size(60, 13);
-            this.LongitudeLabel.TabIndex = 8;
-            this.LongitudeLabel.Text = "Longitude";
+            this.LatitudeBox.Location = new System.Drawing.Point(91, 45);
+            this.LatitudeBox.Name = "LatitudeBox";
+            this.LatitudeBox.Size = new System.Drawing.Size(90, 20);
+            this.LatitudeBox.TabIndex = 1;
+            this.toolTip1.SetToolTip(this.LatitudeBox, resources.GetString("LatitudeBox.ToolTip"));
+            this.LatitudeBox.Validating += new System.ComponentModel.CancelEventHandler(this.LatitudeBox_Validating);
             // 
             // ElevationBox
             // 
@@ -213,43 +246,46 @@ namespace ASCOM.EQ500X
         "e a decimal value in meters.\r\nAllowed interval is -300 meters to +10000 meters.");
             this.ElevationBox.Validating += new System.ComponentModel.CancelEventHandler(this.ElevationBox_Validating);
             // 
-            // LatitudeBox
+            // LongitudeLabel
             // 
-            this.LatitudeBox.Location = new System.Drawing.Point(91, 45);
-            this.LatitudeBox.Name = "LatitudeBox";
-            this.LatitudeBox.Size = new System.Drawing.Size(90, 20);
-            this.LatitudeBox.TabIndex = 1;
-            this.toolTip1.SetToolTip(this.LatitudeBox, resources.GetString("LatitudeBox.ToolTip"));
-            this.LatitudeBox.Validating += new System.ComponentModel.CancelEventHandler(this.LatitudeBox_Validating);
+            this.LongitudeLabel.AutoSize = true;
+            this.LongitudeLabel.Location = new System.Drawing.Point(6, 22);
+            this.LongitudeLabel.Name = "LongitudeLabel";
+            this.LongitudeLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
+            this.LongitudeLabel.Size = new System.Drawing.Size(60, 13);
+            this.LongitudeLabel.TabIndex = 8;
+            this.LongitudeLabel.Text = "Longitude";
             // 
-            // LongitudeBox
+            // LatitudeLabel
             // 
-            this.LongitudeBox.Location = new System.Drawing.Point(91, 19);
-            this.LongitudeBox.Name = "LongitudeBox";
-            this.LongitudeBox.Size = new System.Drawing.Size(90, 20);
-            this.LongitudeBox.TabIndex = 0;
-            this.toolTip1.SetToolTip(this.LongitudeBox, resources.GetString("LongitudeBox.ToolTip"));
-            this.LongitudeBox.Validating += new System.ComponentModel.CancelEventHandler(this.LongitudeBox_Validating);
+            this.LatitudeLabel.AutoSize = true;
+            this.LatitudeLabel.Location = new System.Drawing.Point(6, 48);
+            this.LatitudeLabel.Name = "LatitudeLabel";
+            this.LatitudeLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
+            this.LatitudeLabel.Size = new System.Drawing.Size(51, 13);
+            this.LatitudeLabel.TabIndex = 9;
+            this.LatitudeLabel.Text = "Latitude";
             // 
-            // ConnectionGroupBox
+            // ElevationLabel
             // 
-            this.ConnectionGroupBox.Controls.Add(this.comboBoxComPort);
-            this.ConnectionGroupBox.Controls.Add(this.chkTrace);
-            this.ConnectionGroupBox.Controls.Add(this.label2);
-            this.ConnectionGroupBox.Location = new System.Drawing.Point(3, 109);
-            this.ConnectionGroupBox.Name = "ConnectionGroupBox";
-            this.ConnectionGroupBox.Size = new System.Drawing.Size(234, 79);
-            this.ConnectionGroupBox.TabIndex = 1;
-            this.ConnectionGroupBox.TabStop = false;
-            this.ConnectionGroupBox.Text = "Hardware Connection";
+            this.ElevationLabel.AutoSize = true;
+            this.ElevationLabel.Location = new System.Drawing.Point(6, 74);
+            this.ElevationLabel.Name = "ElevationLabel";
+            this.ElevationLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
+            this.ElevationLabel.Size = new System.Drawing.Size(57, 13);
+            this.ElevationLabel.TabIndex = 10;
+            this.ElevationLabel.Text = "Elevation";
             // 
-            // toolTip1
+            // flowLayoutPanel1
             // 
-            this.toolTip1.AutomaticDelay = 100;
-            this.toolTip1.AutoPopDelay = 30000;
-            this.toolTip1.InitialDelay = 100;
-            this.toolTip1.ReshowDelay = 20;
-            this.toolTip1.ShowAlways = true;
+            this.flowLayoutPanel1.Controls.Add(this.GeographicalSiteGroupBox);
+            this.flowLayoutPanel1.Controls.Add(this.ConnectionGroupBox);
+            this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flowLayoutPanel1.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.flowLayoutPanel1.Location = new System.Drawing.Point(0, 0);
+            this.flowLayoutPanel1.Name = "flowLayoutPanel1";
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(270, 234);
+            this.flowLayoutPanel1.TabIndex = 0;
             // 
             // SetupDialogForm
             // 
@@ -267,14 +303,15 @@ namespace ASCOM.EQ500X
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).EndInit();
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
-            this.splitContainer1.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
-            this.flowLayoutPanel1.ResumeLayout(false);
-            this.GeographicalSiteGroupBox.ResumeLayout(false);
-            this.GeographicalSiteGroupBox.PerformLayout();
+            this.tableLayoutPanel1.ResumeLayout(false);
+            this.tableLayoutPanel1.PerformLayout();
             this.ConnectionGroupBox.ResumeLayout(false);
             this.ConnectionGroupBox.PerformLayout();
+            this.GeographicalSiteGroupBox.ResumeLayout(false);
+            this.GeographicalSiteGroupBox.PerformLayout();
+            this.flowLayoutPanel1.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -284,10 +321,8 @@ namespace ASCOM.EQ500X
         private System.Windows.Forms.Button cmdOK;
         private System.Windows.Forms.Button cmdCancel;
         private System.Windows.Forms.PictureBox picASCOM;
-        private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.CheckBox chkTrace;
-        private System.Windows.Forms.ComboBox comboBoxComPort;
         private System.Windows.Forms.SplitContainer splitContainer1;
+        private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
         private System.Windows.Forms.GroupBox GeographicalSiteGroupBox;
         private System.Windows.Forms.Label ElevationLabel;
@@ -297,6 +332,10 @@ namespace ASCOM.EQ500X
         private System.Windows.Forms.TextBox LatitudeBox;
         private System.Windows.Forms.TextBox LongitudeBox;
         private System.Windows.Forms.GroupBox ConnectionGroupBox;
-        private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.ComboBox comboBoxComPort;
+        private System.Windows.Forms.CheckBox chkTrace;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
+        private System.Windows.Forms.LinkLabel ReleaseslinkLabel;
     }
 }

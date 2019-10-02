@@ -9,6 +9,7 @@ using ASCOM.Utilities;
 using ASCOM.EQ500X;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace ASCOM.EQ500X
 {
@@ -72,6 +73,7 @@ namespace ASCOM.EQ500X
             this.LongitudeBox.Text = m_Util.DegreesToDMS(Telescope.m_LocationProfile.Longitude);
             this.LatitudeBox.Text = m_Util.DegreesToDMS(Telescope.m_LocationProfile.Latitude);
             this.ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString(formatProvider) + " m";
+            this.ReleaseslinkLabel.Text = typeof(Telescope).Assembly.GetName().Version.ToString();
         }
 
         private void LongitudeBox_Validating(object sender, CancelEventArgs e)
@@ -119,6 +121,11 @@ namespace ASCOM.EQ500X
                 e.Cancel = true;
                 ElevationBox.Select(0, ElevationBox.Text.Length);
             }
+        }
+
+        private void ReleaseslinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start("https://github.com/TallFurryMan/ascom-drivers/releases");
         }
     }
 }
