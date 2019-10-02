@@ -264,7 +264,9 @@ namespace ASCOM.EQ500X
 
         public bool CommandBool(string command, bool raw)
         {
-            lock (internalLock) switch (command)
+            lock (internalLock)
+            {
+                switch (command)
                 {
                     case "isSimulated":
                         return isSimulated;
@@ -273,10 +275,10 @@ namespace ASCOM.EQ500X
                     default:
                         break;
                 }
+            }
 
-            CheckConnected("CommandBool");
-
-            string ret = CommandString(command, raw);
+            // CheckConnected("CommandBool");
+            // string ret = CommandString(command, raw);
             // TODO decode the return string and return true or false
             // or
             throw new MethodNotImplementedException("CommandBool");
@@ -290,7 +292,9 @@ namespace ASCOM.EQ500X
             // then all communication calls this function
             // you need something to ensure that only one command is in progress at a time
 
-            if (isSimulated) lock (internalLock)
+            if (isSimulated)
+            {
+                lock (internalLock)
                 {
                     if ("getCurrentMechanicalPosition" == command)
                     {
@@ -308,6 +312,7 @@ namespace ASCOM.EQ500X
                         return m_SlewRate.ToString();
                     }
                 }
+            }
 
             throw new MethodNotImplementedException(String.Format("CommandString - {0}", command));
         }
@@ -318,15 +323,14 @@ namespace ASCOM.EQ500X
             if (IsConnected)
                 Connected = false;
 
-            if (null != m_Port)
-                m_Port.Dispose();
-
-            if (null != m_ReadScopeTimer)
-                m_ReadScopeTimer.Dispose();
-            if (null != m_RAGuideTaskCancellation)
-                m_RAGuideTaskCancellation.Dispose();
-            if (null != m_DECGuideTaskCancellation)
-                m_DECGuideTaskCancellation.Dispose();
+            m_Port?.Dispose();
+            m_Port = null;
+            m_ReadScopeTimer?.Dispose();
+            m_ReadScopeTimer = null;
+            m_RAGuideTaskCancellation?.Dispose();
+            m_RAGuideTaskCancellation = null;
+            m_DECGuideTaskCancellation?.Dispose();
+            m_DECGuideTaskCancellation = null;
 
             // Clean up the tracelogger and util objects
             if (null != tl)
@@ -1058,8 +1062,8 @@ namespace ASCOM.EQ500X
             {
                 if (TrackState.GUIDING == m_TrackState)
                 {
-                    bool ra_complete = null == m_RAGuideTask || m_RAGuideTask.IsCompleted;
-                    bool dec_complete = null == m_DECGuideTask || m_DECGuideTask.IsCompleted;
+                    bool ra_complete = m_RAGuideTask is null || m_RAGuideTask.IsCompleted;
+                    bool dec_complete = m_DECGuideTask is null || m_DECGuideTask.IsCompleted;
 
                     switch (direction)
                     {
@@ -1104,18 +1108,14 @@ namespace ASCOM.EQ500X
             {
                 case GuideDirections.guideWest:
                 case GuideDirections.guideEast:
-                    if (null != m_RAGuideTaskCancellation)
-                        m_RAGuideTaskCancellation.Cancel();
-                    if (null != m_RAGuideTask)
-                        m_RAGuideTask.Wait();
+                    m_RAGuideTaskCancellation?.Cancel();
+                    m_RAGuideTask?.Wait();
                     break;
 
                 case GuideDirections.guideSouth:
                 case GuideDirections.guideNorth:
-                    if (null != m_DECGuideTaskCancellation)
-                        m_DECGuideTaskCancellation.Cancel();
-                    if (null != m_DECGuideTask)
-                        m_DECGuideTask.Wait();
+                    m_DECGuideTaskCancellation?.Cancel();
+                    m_DECGuideTask?.Wait();
                     break;
             }
 
@@ -2223,7 +2223,7 @@ namespace ASCOM.EQ500X
 
         private void restartReadScopeStatusTimer()
         {
-            if (null == m_ReadScopeTimer)
+            if (m_ReadScopeTimer is null)
             {
                 m_ReadScopeTimer = new System.Timers.Timer(PollMs);
                 m_ReadScopeTimer.Elapsed += new ElapsedEventHandler((object obj, ElapsedEventArgs e) => ReadScopeStatus());

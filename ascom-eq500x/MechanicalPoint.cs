@@ -137,7 +137,7 @@ namespace ASCOM.EQ500X
 
         public bool parseStringDEC(string s)
         {
-            if (null == s || s.Length < MechanicalPoint_DEC_FormatR.Length - 1)
+            if (s is null || s.Length < MechanicalPoint_DEC_FormatR.Length - 1)
                 return true;
 
             // Mount replies to "#GD:" with "sDD:MM:SS".
@@ -197,7 +197,7 @@ namespace ASCOM.EQ500X
         }
         public bool parseStringRA(string s)
         {
-            if (null == s || s.Length < MechanicalPoint_RA_Format.Length - 1)
+            if (s is null || s.Length < MechanicalPoint_RA_Format.Length - 1)
                 return true;
 
             // Mount replies to "#GR:" with "HH:MM:SS".
@@ -289,7 +289,7 @@ namespace ASCOM.EQ500X
 
         public double RA_degrees_to(MechanicalPoint b)
         {
-            Contract.Requires(null != b);
+            Contract.Requires(!(b is null));
 
             // RA is circular, DEC is not
             // We have hours and not degrees because that's what the mount is handling in terms of precision
@@ -301,7 +301,7 @@ namespace ASCOM.EQ500X
         }
         public double DEC_degrees_to(MechanicalPoint b)
         {
-            Contract.Requires(null != b);
+            Contract.Requires(!(b is null));
 
             // RA is circular, DEC is not
             return (b._DECm - _DECm) / 3600.0;
@@ -311,7 +311,8 @@ namespace ASCOM.EQ500X
 
         public static double Subtract(MechanicalPoint a, MechanicalPoint b)
         {
-            Contract.Requires(null != a && null != b);
+            Contract.Requires(!(a is null));
+            Contract.Requires(!(b is null));
 
             double ra_distance = a.RA_degrees_to(b);
             double dec_distance = a.DEC_degrees_to(b);
@@ -319,15 +320,9 @@ namespace ASCOM.EQ500X
             return Math.Sqrt(ra_distance * ra_distance + dec_distance * dec_distance);
         }
 
-        public static bool operator !=(MechanicalPoint a, MechanicalPoint b)
-        {
-            return (null == a || null == b) ? false : !a.Equals(b);
-        }
+        public static bool operator !=(MechanicalPoint a, MechanicalPoint b) => (a is null || b is null) ? false : !a.Equals(b);
 
-        public static bool operator ==(MechanicalPoint a, MechanicalPoint b)
-        {
-            return (null == a || null == b) ? false : a.Equals(b);
-        }
+        public static bool operator ==(MechanicalPoint a, MechanicalPoint b) => (a is null || b is null) ? false : a.Equals(b);
 
         public override bool Equals(object o)
         {
