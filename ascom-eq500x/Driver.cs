@@ -57,7 +57,7 @@ namespace ASCOM.EQ500X
     /// </summary>
     [Guid("c46b23bc-44b8-4734-b6dd-caab44e07e2d")]
     [ClassInterface(ClassInterfaceType.None)]
-    public class Telescope : ITelescopeV3
+    public class Telescope : ITelescopeV3, IDisposable
     {
         /// <summary>
         /// ASCOM DeviceID (COM ProgID) for this driver.
@@ -312,8 +312,12 @@ namespace ASCOM.EQ500X
             throw new ASCOM.MethodNotImplementedException(String.Format("CommandString - {0}", command));
         }
 
-        public void Dispose()
+        protected virtual void Dispose(bool disposing)
         {
+            // Disconnect the device
+            if (IsConnected)
+                Connected = false;
+
             // Clean up the tracelogger and util objects
             if (null != tl)
             {
@@ -325,6 +329,12 @@ namespace ASCOM.EQ500X
             utilities = null;
             astroUtilities.Dispose();
             astroUtilities = null;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public bool Connected
