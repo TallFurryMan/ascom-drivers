@@ -1016,6 +1016,11 @@ namespace ASCOM.EQ500X
 
                         CheckConnected("MoveAxis requires hardware connection");
 
+                        if (TrackState.TRACKING == m_TrackState)
+                            savedSlewRateIndex = m_SlewRate;
+
+                        updateSlewRate(matchingRate);
+
                         switch (Axis)
                         {
                             case TelescopeAxes.axisPrimary:
@@ -1033,13 +1038,9 @@ namespace ASCOM.EQ500X
                                 break;
 
                             default:
+                                updateSlewRate(savedSlewRateIndex);
                                 throw new InvalidValueException($"MoveAxis - Invalid axis {Axis.ToString()}");
                         }
-
-                        if (TrackState.TRACKING == m_TrackState)
-                            savedSlewRateIndex = m_SlewRate;
-
-                        updateSlewRate(matchingRate);
 
                         m_TrackState = TrackState.MOVING;
                     }
@@ -1132,6 +1133,7 @@ namespace ASCOM.EQ500X
 
                     if (TrackState.TRACKING == m_TrackState)
                         savedSlewRateIndex = m_SlewRate;
+
                     updateSlewRate(SlewRate.SLEW_GUIDE);
 
                     switch (Direction)
