@@ -17,8 +17,8 @@ namespace ASCOM.EQ500X
         private const string m_DMSRegex = @"[^°]+[° ]+([^']+[' ]+([^""]+["" ]*)*)*";
         private static readonly char[] m_ElevationSymbols = { ' ', 'm' };
 
-        Telescope.LocationProfile m_LocationProfile = null;
-        string m_PortName;
+        private Telescope.LocationProfile m_LocationProfile = null;
+        private string m_PortName;
 
         public SetupDialogForm()
         {
