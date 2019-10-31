@@ -51,7 +51,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <RegisterForComInterop>false</RegisterForComInterop>
+    <RegisterForComInterop>true</RegisterForComInterop>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -170,11 +170,10 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>
-    </PreBuildEvent>
+    <PreBuildEvent>if exist "$(TargetPath)" %25WinDir%25\Microsoft.NET\Framework64\v4.0.30319\regasm /verbose /unregister /tlb "$(TargetPath)"</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>%25WinDir%25\Microsoft.NET\Framework64\v4.0.30319\regasm /codebase /tlb "$(TargetPath)"</PostBuildEvent>
+    <PostBuildEvent>%25WinDir%25\Microsoft.NET\Framework64\v4.0.30319\regasm /verbose /codebase /tlb "$(TargetPath)"</PostBuildEvent>
   </PropertyGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
