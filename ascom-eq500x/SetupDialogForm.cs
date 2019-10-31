@@ -14,11 +14,13 @@ namespace ASCOM.EQ500X
     public partial class SetupDialogForm : Form
     {
         private ASCOM.Utilities.Util m_Util = new ASCOM.Utilities.Util();
-        private const string m_DMSRegex = @"[^°]+[° ]+([^']+[' ]+([^""]+["" ]*)*)*";
+        private const string m_DMSRegex = @"\d+[° ]+(\d+[' ]+(\d+["" ]*)*)*";
         private static readonly char[] m_ElevationSymbols = { ' ', 'm' };
 
         private Telescope.LocationProfile m_LocationProfile = null;
         private string m_PortName;
+
+        private readonly IFormatProvider formatProvider = typeof(Telescope).Assembly.GetName().CultureInfo;
 
         public SetupDialogForm()
         {
@@ -51,7 +53,7 @@ namespace ASCOM.EQ500X
             m_LocationProfile = Telescope.m_LocationProfile;
             LongitudeBox.Text = m_Util.DegreesToDMS(m_LocationProfile.Longitude);
             LatitudeBox.Text = m_Util.DegreesToDMS(m_LocationProfile.Latitude);
-            ElevationBox.Text = m_LocationProfile.Elevation.ToString(CultureInfo.CurrentCulture) + " m";
+            ElevationBox.Text = m_LocationProfile.Elevation.ToString(formatProvider) + " m";
 
             // Set logging from profile
             chkTrace.Checked = Telescope.tl.Enabled;
@@ -110,7 +112,7 @@ namespace ASCOM.EQ500X
             try
             {
                 Match m = Regex.Match(LongitudeBox.Text, m_DMSRegex);
-                double value = m.Success ? m_Util.DMSToDegrees(LongitudeBox.Text) : double.Parse(LongitudeBox.Text, NumberStyles.Number, CultureInfo.CurrentCulture);
+                double value = m.Success ? m_Util.DMSToDegrees(LongitudeBox.Text) : double.Parse(LongitudeBox.Text, NumberStyles.Number, formatProvider);
                 m_LocationProfile.Longitude = value;
                 LongitudeBox.Text = m_Util.DegreesToDMS(value);
             }
@@ -126,7 +128,7 @@ namespace ASCOM.EQ500X
             try
             {
                 Match m = Regex.Match(LongitudeBox.Text, m_DMSRegex);
-                double value = m.Success ? m_Util.DMSToDegrees(LatitudeBox.Text) : double.Parse(LatitudeBox.Text, NumberStyles.Number, CultureInfo.CurrentCulture);
+                double value = m.Success ? m_Util.DMSToDegrees(LatitudeBox.Text) : double.Parse(LatitudeBox.Text, NumberStyles.Number, formatProvider);
                 m_LocationProfile.Latitude = value;
                 LatitudeBox.Text = m_Util.DegreesToDMS(value);
             }
@@ -141,9 +143,9 @@ namespace ASCOM.EQ500X
         {
             try
             {
-                double value = double.Parse(ElevationBox.Text.TrimEnd(m_ElevationSymbols), NumberStyles.Number, CultureInfo.CurrentCulture);
+                double value = double.Parse(ElevationBox.Text.TrimEnd(m_ElevationSymbols), NumberStyles.Number, formatProvider);
                 m_LocationProfile.Elevation = value;
-                ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString(CultureInfo.CurrentCulture) + " m";
+                ElevationBox.Text = Telescope.m_LocationProfile.Elevation.ToString(formatProvider) + " m";
             }
             catch (Exception)
             {
