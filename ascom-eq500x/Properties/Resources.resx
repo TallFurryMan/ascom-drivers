@@ -112,16 +112,52 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="ASCOM" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\ASCOM.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="DefaultIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\ASCOM.ico;System.Drawing.Icon, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="SetupDialog.AutoSearch.Text" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="SetupDialog.CommPort.Text" xml:space="preserve">
+    <value>Comm Port</value>
+  </data>
+  <data name="SetupDialog.DialogBox.Text" xml:space="preserve">
+    <value>EQ500X Setup</value>
+  </data>
+  <data name="SetupDialog.DialogCancel.Text" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SetupDialog.DialogOK.Text" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="SetupDialog.Elevation.Text" xml:space="preserve">
+    <value>Elevation</value>
+  </data>
+  <data name="SetupDialog.GeographicalSite.Text" xml:space="preserve">
+    <value>Geographical Site</value>
+  </data>
+  <data name="SetupDialog.HardwareConnection.Text" xml:space="preserve">
+    <value>Hardware Connection</value>
+  </data>
+  <data name="SetupDialog.Latitude.Text" xml:space="preserve">
+    <value>Latitude</value>
+  </data>
+  <data name="SetupDialog.Longitude.Text" xml:space="preserve">
+    <value>Longitude</value>
+  </data>
+  <data name="SetupDialog.Releases.Text" xml:space="preserve">
+    <value>Releases</value>
+  </data>
+  <data name="SetupDialog.TraceOn.Text" xml:space="preserve">
+    <value>Trace on</value>
   </data>
 </root>
