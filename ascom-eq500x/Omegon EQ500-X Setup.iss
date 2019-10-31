@@ -5,13 +5,13 @@
 [Setup]
 AppID={{63c8be92-cfb1-445c-9d2d-f4b2aedb9ab2}
 AppName=ASCOM Omegon EQ500-X Telescope Driver
-AppVerName=ASCOM Omegon EQ500-X Telescope Driver 1.0
-AppVersion=1.0
+AppVerName=ASCOM Omegon EQ500-X Telescope Driver 1.2
+AppVersion=1.2
 AppPublisher=Eric Dejouhanet <eric.dejouhanet@gmail.com>
 AppPublisherURL=mailto:eric.dejouhanet@gmail.com
 AppSupportURL=http://tech.groups.yahoo.com/group/ASCOM-Talk/
 AppUpdatesURL=http://ascom-standards.org/
-VersionInfoVersion=1.0.0
+VersionInfoVersion=1.2.0
 ; This is the OS version, 2000/XP/2003 not supported anymore
 MinVersion=0,6.0
 DefaultDirName="{commoncf}\ASCOM\Telescope"
