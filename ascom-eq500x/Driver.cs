@@ -196,7 +196,6 @@ namespace ASCOM.EQ500X
 
             ReadProfile(); // Read device configuration from the ASCOM Profile store
 
-            tl.Enabled = true;
             LogMessage("Telescope", "Starting initialisation");
             Debug.WriteLine($"Logging to {tl.LogFileName}");
 

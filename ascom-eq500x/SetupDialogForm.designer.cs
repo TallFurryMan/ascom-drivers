@@ -34,30 +34,31 @@ namespace ASCOM.EQ500X
             this.cmdCancel = new System.Windows.Forms.Button();
             this.picASCOM = new System.Windows.Forms.PictureBox();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
-            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.ReleaseslinkLabel = new System.Windows.Forms.LinkLabel();
-            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.ConnectionGroupBox = new System.Windows.Forms.GroupBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.chkTrace = new System.Windows.Forms.CheckBox();
-            this.comboBoxComPort = new System.Windows.Forms.ComboBox();
-            this.GeographicalSiteGroupBox = new System.Windows.Forms.GroupBox();
-            this.LongitudeBox = new System.Windows.Forms.TextBox();
-            this.LatitudeBox = new System.Windows.Forms.TextBox();
-            this.ElevationBox = new System.Windows.Forms.TextBox();
-            this.LongitudeLabel = new System.Windows.Forms.Label();
-            this.LatitudeLabel = new System.Windows.Forms.Label();
-            this.ElevationLabel = new System.Windows.Forms.Label();
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
+            this.GeographicalSiteGroupBox = new System.Windows.Forms.GroupBox();
+            this.ElevationLabel = new System.Windows.Forms.Label();
+            this.LatitudeLabel = new System.Windows.Forms.Label();
+            this.LongitudeLabel = new System.Windows.Forms.Label();
+            this.ElevationBox = new System.Windows.Forms.TextBox();
+            this.LatitudeBox = new System.Windows.Forms.TextBox();
+            this.LongitudeBox = new System.Windows.Forms.TextBox();
+            this.ConnectionGroupBox = new System.Windows.Forms.GroupBox();
+            this.comboBoxComPort = new System.Windows.Forms.ComboBox();
+            this.chkTrace = new System.Windows.Forms.CheckBox();
+            this.CommPortLabel = new System.Windows.Forms.Label();
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.ReleaseslinkLabel = new System.Windows.Forms.LinkLabel();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.portLookupTimer = new System.Windows.Forms.Timer(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
-            this.tableLayoutPanel1.SuspendLayout();
-            this.ConnectionGroupBox.SuspendLayout();
-            this.GeographicalSiteGroupBox.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
+            this.GeographicalSiteGroupBox.SuspendLayout();
+            this.ConnectionGroupBox.SuspendLayout();
+            this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // cmdOK
@@ -123,25 +124,133 @@ namespace ASCOM.EQ500X
             this.splitContainer1.SplitterDistance = 270;
             this.splitContainer1.TabIndex = 8;
             // 
-            // toolTip1
+            // flowLayoutPanel1
             // 
-            this.toolTip1.AutomaticDelay = 100;
-            this.toolTip1.AutoPopDelay = 30000;
-            this.toolTip1.InitialDelay = 100;
-            this.toolTip1.ReshowDelay = 20;
-            this.toolTip1.ShowAlways = true;
+            this.flowLayoutPanel1.Controls.Add(this.GeographicalSiteGroupBox);
+            this.flowLayoutPanel1.Controls.Add(this.ConnectionGroupBox);
+            this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flowLayoutPanel1.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.flowLayoutPanel1.Location = new System.Drawing.Point(0, 0);
+            this.flowLayoutPanel1.Name = "flowLayoutPanel1";
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(270, 234);
+            this.flowLayoutPanel1.TabIndex = 0;
             // 
-            // ReleaseslinkLabel
+            // GeographicalSiteGroupBox
             // 
-            this.ReleaseslinkLabel.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.ReleaseslinkLabel.AutoSize = true;
-            this.ReleaseslinkLabel.Location = new System.Drawing.Point(21, 116);
-            this.ReleaseslinkLabel.Name = "ReleaseslinkLabel";
-            this.ReleaseslinkLabel.Size = new System.Drawing.Size(51, 13);
-            this.ReleaseslinkLabel.TabIndex = 4;
-            this.ReleaseslinkLabel.TabStop = true;
-            this.ReleaseslinkLabel.Text = "Releases";
-            this.ReleaseslinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.ReleaseslinkLabel_LinkClicked);
+            this.GeographicalSiteGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.GeographicalSiteGroupBox.Controls.Add(this.ElevationLabel);
+            this.GeographicalSiteGroupBox.Controls.Add(this.LatitudeLabel);
+            this.GeographicalSiteGroupBox.Controls.Add(this.LongitudeLabel);
+            this.GeographicalSiteGroupBox.Controls.Add(this.ElevationBox);
+            this.GeographicalSiteGroupBox.Controls.Add(this.LatitudeBox);
+            this.GeographicalSiteGroupBox.Controls.Add(this.LongitudeBox);
+            this.GeographicalSiteGroupBox.Location = new System.Drawing.Point(3, 3);
+            this.GeographicalSiteGroupBox.Name = "GeographicalSiteGroupBox";
+            this.GeographicalSiteGroupBox.Size = new System.Drawing.Size(234, 100);
+            this.GeographicalSiteGroupBox.TabIndex = 0;
+            this.GeographicalSiteGroupBox.TabStop = false;
+            this.GeographicalSiteGroupBox.Text = "[Geographical Site]";
+            // 
+            // ElevationLabel
+            // 
+            this.ElevationLabel.AutoSize = true;
+            this.ElevationLabel.Location = new System.Drawing.Point(6, 74);
+            this.ElevationLabel.Name = "ElevationLabel";
+            this.ElevationLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
+            this.ElevationLabel.Size = new System.Drawing.Size(63, 13);
+            this.ElevationLabel.TabIndex = 10;
+            this.ElevationLabel.Text = "[Elevation]";
+            // 
+            // LatitudeLabel
+            // 
+            this.LatitudeLabel.AutoSize = true;
+            this.LatitudeLabel.Location = new System.Drawing.Point(6, 48);
+            this.LatitudeLabel.Name = "LatitudeLabel";
+            this.LatitudeLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
+            this.LatitudeLabel.Size = new System.Drawing.Size(57, 13);
+            this.LatitudeLabel.TabIndex = 9;
+            this.LatitudeLabel.Text = "[Latitude]";
+            // 
+            // LongitudeLabel
+            // 
+            this.LongitudeLabel.AutoSize = true;
+            this.LongitudeLabel.Location = new System.Drawing.Point(6, 22);
+            this.LongitudeLabel.Name = "LongitudeLabel";
+            this.LongitudeLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
+            this.LongitudeLabel.Size = new System.Drawing.Size(66, 13);
+            this.LongitudeLabel.TabIndex = 8;
+            this.LongitudeLabel.Text = "[Longitude]";
+            // 
+            // ElevationBox
+            // 
+            this.ElevationBox.Location = new System.Drawing.Point(91, 71);
+            this.ElevationBox.Name = "ElevationBox";
+            this.ElevationBox.Size = new System.Drawing.Size(90, 20);
+            this.ElevationBox.TabIndex = 2;
+            this.toolTip1.SetToolTip(this.ElevationBox, "Enter the elevation of the geographical site the mount is located at.\r\nYou may us" +
+        "e a decimal value in meters using your system locale format.\r\nAllowed interval i" +
+        "s -300 meters to +10000 meters.");
+            this.ElevationBox.Validating += new System.ComponentModel.CancelEventHandler(this.ElevationBox_Validating);
+            // 
+            // LatitudeBox
+            // 
+            this.LatitudeBox.Location = new System.Drawing.Point(91, 45);
+            this.LatitudeBox.Name = "LatitudeBox";
+            this.LatitudeBox.Size = new System.Drawing.Size(90, 20);
+            this.LatitudeBox.TabIndex = 1;
+            this.toolTip1.SetToolTip(this.LatitudeBox, resources.GetString("LatitudeBox.ToolTip"));
+            this.LatitudeBox.Validating += new System.ComponentModel.CancelEventHandler(this.LatitudeBox_Validating);
+            // 
+            // LongitudeBox
+            // 
+            this.LongitudeBox.Location = new System.Drawing.Point(91, 19);
+            this.LongitudeBox.Name = "LongitudeBox";
+            this.LongitudeBox.Size = new System.Drawing.Size(90, 20);
+            this.LongitudeBox.TabIndex = 0;
+            this.toolTip1.SetToolTip(this.LongitudeBox, resources.GetString("LongitudeBox.ToolTip"));
+            this.LongitudeBox.Validating += new System.ComponentModel.CancelEventHandler(this.LongitudeBox_Validating);
+            // 
+            // ConnectionGroupBox
+            // 
+            this.ConnectionGroupBox.Controls.Add(this.comboBoxComPort);
+            this.ConnectionGroupBox.Controls.Add(this.chkTrace);
+            this.ConnectionGroupBox.Controls.Add(this.CommPortLabel);
+            this.ConnectionGroupBox.Location = new System.Drawing.Point(3, 109);
+            this.ConnectionGroupBox.Name = "ConnectionGroupBox";
+            this.ConnectionGroupBox.Size = new System.Drawing.Size(234, 79);
+            this.ConnectionGroupBox.TabIndex = 1;
+            this.ConnectionGroupBox.TabStop = false;
+            this.ConnectionGroupBox.Text = "[Hardware Connection]";
+            // 
+            // comboBoxComPort
+            // 
+            this.comboBoxComPort.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBoxComPort.FormattingEnabled = true;
+            this.comboBoxComPort.Location = new System.Drawing.Point(91, 26);
+            this.comboBoxComPort.Name = "comboBoxComPort";
+            this.comboBoxComPort.Size = new System.Drawing.Size(90, 21);
+            this.comboBoxComPort.TabIndex = 7;
+            this.comboBoxComPort.Validating += new System.ComponentModel.CancelEventHandler(this.ComboBoxComPort_Validating);
+            // 
+            // chkTrace
+            // 
+            this.chkTrace.AutoSize = true;
+            this.chkTrace.Location = new System.Drawing.Point(91, 53);
+            this.chkTrace.Name = "chkTrace";
+            this.chkTrace.Size = new System.Drawing.Size(75, 17);
+            this.chkTrace.TabIndex = 6;
+            this.chkTrace.Text = "[Trace on]";
+            this.chkTrace.UseVisualStyleBackColor = true;
+            // 
+            // CommPortLabel
+            // 
+            this.CommPortLabel.AutoSize = true;
+            this.CommPortLabel.Location = new System.Drawing.Point(6, 29);
+            this.CommPortLabel.Name = "CommPortLabel";
+            this.CommPortLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
+            this.CommPortLabel.Size = new System.Drawing.Size(70, 13);
+            this.CommPortLabel.TabIndex = 5;
+            this.CommPortLabel.Text = "[Comm Port]";
             // 
             // tableLayoutPanel1
             // 
@@ -162,130 +271,30 @@ namespace ASCOM.EQ500X
             this.tableLayoutPanel1.Size = new System.Drawing.Size(93, 228);
             this.tableLayoutPanel1.TabIndex = 5;
             // 
-            // ConnectionGroupBox
+            // ReleaseslinkLabel
             // 
-            this.ConnectionGroupBox.Controls.Add(this.comboBoxComPort);
-            this.ConnectionGroupBox.Controls.Add(this.chkTrace);
-            this.ConnectionGroupBox.Controls.Add(this.label2);
-            this.ConnectionGroupBox.Location = new System.Drawing.Point(3, 109);
-            this.ConnectionGroupBox.Name = "ConnectionGroupBox";
-            this.ConnectionGroupBox.Size = new System.Drawing.Size(234, 79);
-            this.ConnectionGroupBox.TabIndex = 1;
-            this.ConnectionGroupBox.TabStop = false;
-            this.ConnectionGroupBox.Text = "Hardware Connection";
+            this.ReleaseslinkLabel.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.ReleaseslinkLabel.AutoSize = true;
+            this.ReleaseslinkLabel.Location = new System.Drawing.Point(18, 116);
+            this.ReleaseslinkLabel.Name = "ReleaseslinkLabel";
+            this.ReleaseslinkLabel.Size = new System.Drawing.Size(57, 13);
+            this.ReleaseslinkLabel.TabIndex = 4;
+            this.ReleaseslinkLabel.TabStop = true;
+            this.ReleaseslinkLabel.Text = "[Releases]";
+            this.ReleaseslinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.ReleaseslinkLabel_LinkClicked);
             // 
-            // label2
+            // toolTip1
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(6, 29);
-            this.label2.Name = "label2";
-            this.label2.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-            this.label2.Size = new System.Drawing.Size(64, 13);
-            this.label2.TabIndex = 5;
-            this.label2.Text = "Comm Port";
+            this.toolTip1.AutomaticDelay = 100;
+            this.toolTip1.AutoPopDelay = 30000;
+            this.toolTip1.InitialDelay = 100;
+            this.toolTip1.ReshowDelay = 20;
+            this.toolTip1.ShowAlways = true;
             // 
-            // chkTrace
+            // portLookupTimer
             // 
-            this.chkTrace.AutoSize = true;
-            this.chkTrace.Location = new System.Drawing.Point(91, 53);
-            this.chkTrace.Name = "chkTrace";
-            this.chkTrace.Size = new System.Drawing.Size(69, 17);
-            this.chkTrace.TabIndex = 6;
-            this.chkTrace.Text = "Trace on";
-            this.chkTrace.UseVisualStyleBackColor = true;
-            // 
-            // comboBoxComPort
-            // 
-            this.comboBoxComPort.FormattingEnabled = true;
-            this.comboBoxComPort.Location = new System.Drawing.Point(91, 26);
-            this.comboBoxComPort.Name = "comboBoxComPort";
-            this.comboBoxComPort.Size = new System.Drawing.Size(90, 21);
-            this.comboBoxComPort.TabIndex = 7;
-            // 
-            // GeographicalSiteGroupBox
-            // 
-            this.GeographicalSiteGroupBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.GeographicalSiteGroupBox.Controls.Add(this.ElevationLabel);
-            this.GeographicalSiteGroupBox.Controls.Add(this.LatitudeLabel);
-            this.GeographicalSiteGroupBox.Controls.Add(this.LongitudeLabel);
-            this.GeographicalSiteGroupBox.Controls.Add(this.ElevationBox);
-            this.GeographicalSiteGroupBox.Controls.Add(this.LatitudeBox);
-            this.GeographicalSiteGroupBox.Controls.Add(this.LongitudeBox);
-            this.GeographicalSiteGroupBox.Location = new System.Drawing.Point(3, 3);
-            this.GeographicalSiteGroupBox.Name = "GeographicalSiteGroupBox";
-            this.GeographicalSiteGroupBox.Size = new System.Drawing.Size(234, 100);
-            this.GeographicalSiteGroupBox.TabIndex = 0;
-            this.GeographicalSiteGroupBox.TabStop = false;
-            this.GeographicalSiteGroupBox.Text = "Geographical Site";
-            // 
-            // LongitudeBox
-            // 
-            this.LongitudeBox.Location = new System.Drawing.Point(91, 19);
-            this.LongitudeBox.Name = "LongitudeBox";
-            this.LongitudeBox.Size = new System.Drawing.Size(90, 20);
-            this.LongitudeBox.TabIndex = 0;
-            this.toolTip1.SetToolTip(this.LongitudeBox, resources.GetString("LongitudeBox.ToolTip"));
-            this.LongitudeBox.Validating += new System.ComponentModel.CancelEventHandler(this.LongitudeBox_Validating);
-            // 
-            // LatitudeBox
-            // 
-            this.LatitudeBox.Location = new System.Drawing.Point(91, 45);
-            this.LatitudeBox.Name = "LatitudeBox";
-            this.LatitudeBox.Size = new System.Drawing.Size(90, 20);
-            this.LatitudeBox.TabIndex = 1;
-            this.toolTip1.SetToolTip(this.LatitudeBox, resources.GetString("LatitudeBox.ToolTip"));
-            this.LatitudeBox.Validating += new System.ComponentModel.CancelEventHandler(this.LatitudeBox_Validating);
-            // 
-            // ElevationBox
-            // 
-            this.ElevationBox.Location = new System.Drawing.Point(91, 71);
-            this.ElevationBox.Name = "ElevationBox";
-            this.ElevationBox.Size = new System.Drawing.Size(90, 20);
-            this.ElevationBox.TabIndex = 2;
-            this.toolTip1.SetToolTip(this.ElevationBox, "Enter the elevation of the geographical site the mount is located at.\r\nYou may us" +
-        "e a decimal value in meters.\r\nAllowed interval is -300 meters to +10000 meters.");
-            this.ElevationBox.Validating += new System.ComponentModel.CancelEventHandler(this.ElevationBox_Validating);
-            // 
-            // LongitudeLabel
-            // 
-            this.LongitudeLabel.AutoSize = true;
-            this.LongitudeLabel.Location = new System.Drawing.Point(6, 22);
-            this.LongitudeLabel.Name = "LongitudeLabel";
-            this.LongitudeLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-            this.LongitudeLabel.Size = new System.Drawing.Size(60, 13);
-            this.LongitudeLabel.TabIndex = 8;
-            this.LongitudeLabel.Text = "Longitude";
-            // 
-            // LatitudeLabel
-            // 
-            this.LatitudeLabel.AutoSize = true;
-            this.LatitudeLabel.Location = new System.Drawing.Point(6, 48);
-            this.LatitudeLabel.Name = "LatitudeLabel";
-            this.LatitudeLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-            this.LatitudeLabel.Size = new System.Drawing.Size(51, 13);
-            this.LatitudeLabel.TabIndex = 9;
-            this.LatitudeLabel.Text = "Latitude";
-            // 
-            // ElevationLabel
-            // 
-            this.ElevationLabel.AutoSize = true;
-            this.ElevationLabel.Location = new System.Drawing.Point(6, 74);
-            this.ElevationLabel.Name = "ElevationLabel";
-            this.ElevationLabel.Padding = new System.Windows.Forms.Padding(6, 0, 0, 0);
-            this.ElevationLabel.Size = new System.Drawing.Size(57, 13);
-            this.ElevationLabel.TabIndex = 10;
-            this.ElevationLabel.Text = "Elevation";
-            // 
-            // flowLayoutPanel1
-            // 
-            this.flowLayoutPanel1.Controls.Add(this.GeographicalSiteGroupBox);
-            this.flowLayoutPanel1.Controls.Add(this.ConnectionGroupBox);
-            this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.flowLayoutPanel1.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(0, 0);
-            this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(270, 234);
-            this.flowLayoutPanel1.TabIndex = 0;
+            this.portLookupTimer.Interval = 1000;
+            this.portLookupTimer.Tick += new System.EventHandler(this.PortLookupTimer_Tick);
             // 
             // SetupDialogForm
             // 
@@ -299,19 +308,20 @@ namespace ASCOM.EQ500X
             this.Name = "SetupDialogForm";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "EQ500X Setup";
+            this.Text = "[EQ500X Setup]";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.SetupDialogForm_FormClosed);
             ((System.ComponentModel.ISupportInitialize)(this.picASCOM)).EndInit();
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
-            this.tableLayoutPanel1.ResumeLayout(false);
-            this.tableLayoutPanel1.PerformLayout();
-            this.ConnectionGroupBox.ResumeLayout(false);
-            this.ConnectionGroupBox.PerformLayout();
+            this.flowLayoutPanel1.ResumeLayout(false);
             this.GeographicalSiteGroupBox.ResumeLayout(false);
             this.GeographicalSiteGroupBox.PerformLayout();
-            this.flowLayoutPanel1.ResumeLayout(false);
+            this.ConnectionGroupBox.ResumeLayout(false);
+            this.ConnectionGroupBox.PerformLayout();
+            this.tableLayoutPanel1.ResumeLayout(false);
+            this.tableLayoutPanel1.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -334,8 +344,9 @@ namespace ASCOM.EQ500X
         private System.Windows.Forms.GroupBox ConnectionGroupBox;
         private System.Windows.Forms.ComboBox comboBoxComPort;
         private System.Windows.Forms.CheckBox chkTrace;
-        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label CommPortLabel;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.LinkLabel ReleaseslinkLabel;
+        private System.Windows.Forms.Timer portLookupTimer;
     }
 }
