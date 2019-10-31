@@ -42,6 +42,7 @@ namespace ascom_eq500x_test
                 Assert.AreEqual("Omegon EQ500X", device.Name);
                 Assert.AreEqual("ASCOM Telescope Driver for EQ500X.", device.Description);
                 Assert.AreEqual("1.2", device.DriverVersion);
+                Assert.AreEqual("Omegon EQ500X ASCOM Driver v1.2", device.DriverInfo);
             }
         }
 

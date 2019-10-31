@@ -68,7 +68,7 @@ namespace ASCOM.EQ500X
         /// <summary>
         /// Driver description that displays in the ASCOM Chooser.
         /// </summary>
-        private static string driverDescription = "ASCOM Telescope Driver for EQ500X.";
+        internal static string driverDescription = "ASCOM Telescope Driver for EQ500X.";
 
         internal static string comPortProfileName = "COM Port"; // Constants used for Profile persistence
         internal static string comPortDefault = "COM1";
@@ -489,7 +489,6 @@ namespace ASCOM.EQ500X
 
         public string Description
         {
-            // TODO customise this device description
             get
             {
                 LogMessage("Description Get", driverDescription);
@@ -501,9 +500,7 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-                // TODO customise this driver description
-                string driverInfo = "Information about the driver itself. Version: " + String.Format(CultureInfo.InvariantCulture, "{0}.{1}", version.Major, version.Minor);
+                string driverInfo = "Omegon EQ500X ASCOM Driver v" + DriverVersion;
                 LogMessage("DriverInfo Get", driverInfo);
                 return driverInfo;
             }
