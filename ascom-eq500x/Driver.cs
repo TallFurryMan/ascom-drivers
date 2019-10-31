@@ -354,16 +354,18 @@ namespace ASCOM.EQ500X
         {
             get
             {
-                LogMessage("Connected", "Get {0}", IsConnected);
+                LogMessage("Connected", $"Get {IsConnected}");
                 return IsConnected;
             }
             set
             {
-                LogMessage("Connected", "Set {0}", value);
+                LogMessage("Connected", $"Set {value}");
                 if (value == IsConnected)
                     return;
 
-                if (value) lock (internalLock)
+                if (value)
+                {
+                    lock (internalLock)
                     {
                         if (isSimulated)
                         {
@@ -379,55 +381,78 @@ namespace ASCOM.EQ500X
                             return;
                         }
 
-                        LogMessage("Connected Set", "Connecting to port {0}", comPort);
+                        List<string> portNames = new List<string>();
 
-                        m_Port = new Serial();
-                        m_Port.PortName = comPort;
-                        m_Port.Speed = SerialSpeed.ps9600;
-                        m_Port.DataBits = 8;
-                        m_Port.Parity = SerialParity.None;
-                        m_Port.StopBits = SerialStopBits.One;
-                        m_Port.ReceiveTimeout = 5;
-                        m_Port.DTREnable = true;
-                        m_Port.Handshake = SerialHandshake.None;
-
-                        try
+                        if (ASCOM.EQ500X.Properties.Resources.SetupDialog_AutoSearch_Text == comPort)
                         {
-                            m_Port.Connected = true;
+                            LogMessage("Connected Set", "Searching for devices to connect to...");
+                            portNames.AddRange(System.IO.Ports.SerialPort.GetPortNames());
                         }
-                        catch (IOException) { }
+                        else
+                        {
+                            portNames.Add(comPort);
+                        }
 
-                        if (m_Port.Connected)
+                        foreach (string portName in portNames)
                         {
                             try
                             {
-                                if (!ReadScopeStatus())
-                                    throw new FormatException("Connected Set - Failed handshake");
+                                LogMessage("Connected Set", $"Attempting connection to port {portName}.");
 
-                                connectedState = true;
+                                m_Port = new Serial();
+                                m_Port.PortName = portName;
+                                m_Port.Speed = SerialSpeed.ps9600;
+                                m_Port.DataBits = 8;
+                                m_Port.Parity = SerialParity.None;
+                                m_Port.StopBits = SerialStopBits.One;
+                                m_Port.ReceiveTimeout = 5;
+                                m_Port.DTREnable = true;
+                                m_Port.Handshake = SerialHandshake.None;
 
-                                try
+                                m_Port.Connected = true;
+
+                                if (m_Port.Connected)
                                 {
-                                    SiteLongitude = m_LocationProfile.Longitude;
-                                    SiteLatitude = m_LocationProfile.Latitude;
-                                    SiteElevation = m_LocationProfile.Elevation;
-                                }
-                                catch (Exception)
-                                {
-                                    connectedState = false;
-                                    throw new FormatException(("Connected Set - Invalid profile information"));
-                                }
+                                    try
+                                    {
+                                        if (!ReadScopeStatus())
+                                            throw new FormatException("Connected Set - Failed handshake");
 
-                                restartReadScopeStatusTimer();
+                                        connectedState = true;
+
+                                        try
+                                        {
+                                            SiteLongitude = m_LocationProfile.Longitude;
+                                            SiteLatitude = m_LocationProfile.Latitude;
+                                            SiteElevation = m_LocationProfile.Elevation;
+                                        }
+                                        catch (Exception)
+                                        {
+                                            connectedState = false;
+                                            throw new FormatException("Connected Set - Invalid profile information");
+                                        }
+
+                                        restartReadScopeStatusTimer();
+
+                                        LogMessage("Connected Set", $"Handshake on port {portName} is successful.");
+                                        return;
+                                    }
+                                    catch (FormatException e)
+                                    {
+                                        LogMessage("Connected Set", $"Port {portName} open, but device failed handshake ({e.Message})");
+                                        m_Port.Connected = false;
+                                        m_Port.Dispose();
+                                    }
+                                }
                             }
-                            catch (FormatException e)
+                            catch (IOException e)
                             {
-                                LogMessage("Connected Set", $"Port {comPort} open, but device failed handshake ({e.Message})");
-                                m_Port.Connected = false;
-                                m_Port.Dispose();
+                                LogMessage("Connected Set", $"Port {portName} cannot be opened ({e.Message})");
+                                continue;
                             }
                         }
                     }
+                }
                 else
                 {
                     LogMessage("Connected Set", "Disconnecting from port {0}", comPort);
