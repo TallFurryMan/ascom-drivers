@@ -14,6 +14,7 @@
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
 // 10-Jun-2019	ED	0.0.1	Initial edit, created from ASCOM driver template
+// 31-Oct-2019  ED  1.2     Release 1.2
 // --------------------------------------------------------------------------------
 //
 
@@ -120,7 +121,7 @@ namespace ASCOM.EQ500X
         private class SimEQ500X
         {
             internal String MechanicalDECStr = "+00:00:00";
-            internal String MechanicalRAStr = "00°00'00";
+            internal String MechanicalRAStr = "00Â°00'00";
             internal double MechanicalRA = 0;
             internal double MechanicalDEC = 0;
             internal double LST = 6;
@@ -1005,7 +1006,7 @@ namespace ASCOM.EQ500X
             }
             else
             {
-                LogMessage("MoveAxis", $"Moving {Axis.ToString()} at {Rate}°/s");
+                LogMessage("MoveAxis", $"Moving {Axis.ToString()} at {Rate}Â°/s");
 
 #if false // Here to implement async stop on MoveAxis
                 DateTime now = DateTime.UtcNow;
@@ -1451,7 +1452,7 @@ namespace ASCOM.EQ500X
                         //targetMechPosition.RAsky = /* targetRA = */ ra;
                         //targetMechPosition.DECsky = /* targetDEC = */ dec;
 
-                        LogMessage("SlewToCoordinatesAsync", string.Format("Goto target ({0}h,{1:F2}°) HA {2}, LST {3}, quadrant {4}", ra, dec, HA, LST, targetMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole"));
+                        LogMessage("SlewToCoordinatesAsync", string.Format("Goto target ({0}h,{1:F2}Â°) HA {2}, LST {3}, quadrant {4}", ra, dec, HA, LST, targetMechPosition.PointingState == MechanicalPoint.PointingStates.POINTING_NORMAL ? "normal" : "beyond pole"));
                     }
 
                     // Limit the number of loops
@@ -1943,7 +1944,7 @@ namespace ASCOM.EQ500X
                         p.toStringRA(ref simEQ500X.MechanicalRAStr);
                         p.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
 
-                        LogMessage("ReadScopeStatus", "Slewing: new mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2:F3}°,{3:F3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
+                        LogMessage("ReadScopeStatus", "Slewing: new mechanical RA/DEC simulated as {0:F2}Â°/{1:F2}Â° ({2:F3}Â°,{3:F3}Â°) after {8:F3}s, stored as {4}h/{5:F2}Â° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, (RAmDecrease || RAmIncrease) ? rates[adjustment] * delta : 0, (DECmDecrease || DECmIncrease) ? rates[adjustment] * delta : 0, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
                     }
                     else if (TrackState.MOVING == m_TrackState)
                     {
@@ -1955,7 +1956,7 @@ namespace ASCOM.EQ500X
                         p.toStringRA(ref simEQ500X.MechanicalRAStr);
                         p.toStringDEC_Sim(ref simEQ500X.MechanicalDECStr);
 
-                        LogMessage("ReadScopeStatus", "Moving: new mechanical RA/DEC simulated as {0:F2}°/{1:F2}° ({2:F3}°,{3:F3}°) after {8:F3}s, stored as {4}h/{5:F2}° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, m_RASlewRate, m_DECSlewRate, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
+                        LogMessage("ReadScopeStatus", "Moving: new mechanical RA/DEC simulated as {0:F2}Â°/{1:F2}Â° ({2:F3}Â°,{3:F3}Â°) after {8:F3}s, stored as {4}h/{5:F2}Â° = {6}/{7}", simEQ500X.MechanicalRA * 15.0, simEQ500X.MechanicalDEC, m_RASlewRate, m_DECSlewRate, p.RAm, p.DECm, simEQ500X.MechanicalRAStr, simEQ500X.MechanicalDECStr, delta_s);
                     }
                 }
 
@@ -2061,14 +2062,14 @@ namespace ASCOM.EQ500X
                             if (abs_ra_delta <= adjustments[i].distance)
                                 ra_adjust = i;
                         Debug.Assert(-1 != ra_adjust);
-                        LogMessage("ReadScopeStatus", "RA  {0:F2}-{1:F2} = {2:F2}° under {3:F2}° would require adjustment at {4} until less than {5:F2}°", targetMechPosition.RAm * 15.0, currentMechPosition.RAm * 15.0, ra_delta, adjustments[ra_adjust].distance, adjustments[ra_adjust].slew_rate, Math.Max(adjustments[ra_adjust].epsilon, 15.0 / 3600.0));
+                        LogMessage("ReadScopeStatus", "RA  {0:F2}-{1:F2} = {2:F2}Â° under {3:F2}Â° would require adjustment at {4} until less than {5:F2}Â°", targetMechPosition.RAm * 15.0, currentMechPosition.RAm * 15.0, ra_delta, adjustments[ra_adjust].distance, adjustments[ra_adjust].slew_rate, Math.Max(adjustments[ra_adjust].epsilon, 15.0 / 3600.0));
 
                         // Choose slew rate for DEC based on distance to target
                         for (int i = 0; i < adjustments.Count && -1 == dec_adjust; i++)
                             if (abs_dec_delta <= adjustments[i].distance)
                                 dec_adjust = i;
                         Debug.Assert(-1 != dec_adjust);
-                        LogMessage("ReadScopeStatus", "DEC {0:F2}-{1:F2} = {2:F2}° under {3:F2}° would require adjustment at {4} until less than {5:F2}°", targetMechPosition.DECm, currentMechPosition.DECm, dec_delta, adjustments[dec_adjust].distance, adjustments[dec_adjust].slew_rate, adjustments[dec_adjust].epsilon);
+                        LogMessage("ReadScopeStatus", "DEC {0:F2}-{1:F2} = {2:F2}Â° under {3:F2}Â° would require adjustment at {4} until less than {5:F2}Â°", targetMechPosition.DECm, currentMechPosition.DECm, dec_delta, adjustments[dec_adjust].distance, adjustments[dec_adjust].slew_rate, adjustments[dec_adjust].epsilon);
 
                         // This will hold the command string to send to the mount, with move commands
                         String CmdString = "";
@@ -2153,7 +2154,7 @@ namespace ASCOM.EQ500X
                         Debug.Assert(!(RAmIncrease && RAmDecrease) && !(DECmDecrease && DECmIncrease));
 
                         // This log shows target in Degrees/Degrees and delta in Degrees/Degrees
-                        LogMessage("ReadScopeStatus", string.Format("Centering ({0:F2}°,{1:F2}°) delta ({2:F2}°,{3:F2}°) moving {4}{5} {6}{7} at {8} until less than ({9:F2}°,{10:F2}°)", targetMechPosition.RAm * 15.0, targetMechPosition.DECm, ra_delta, dec_delta, RAmDecrease ? 'W' : '.', RAmIncrease ? 'E' : '.', DECmDecrease ? "Equ" : " . ", DECmIncrease ? "Pol" : " . ", adjustments[adjustment].slew_rate, Math.Max(adjustments[adjustment].epsilon, RA_GRANULARITY), adjustments[adjustment].epsilon));
+                        LogMessage("ReadScopeStatus", string.Format("Centering ({0:F2}Â°,{1:F2}Â°) delta ({2:F2}Â°,{3:F2}Â°) moving {4}{5} {6}{7} at {8} until less than ({9:F2}Â°,{10:F2}Â°)", targetMechPosition.RAm * 15.0, targetMechPosition.DECm, ra_delta, dec_delta, RAmDecrease ? 'W' : '.', RAmIncrease ? 'E' : '.', DECmDecrease ? "Equ" : " . ", DECmIncrease ? "Pol" : " . ", adjustments[adjustment].slew_rate, Math.Max(adjustments[adjustment].epsilon, RA_GRANULARITY), adjustments[adjustment].epsilon));
 
                         // If we have a command to run, issue it
                         if (0 < CmdString.Length)
@@ -2161,7 +2162,7 @@ namespace ASCOM.EQ500X
                             // Send command to mount
                             if (CmdString.Length != sendCmd(CmdString))
                             {
-                                LogMessage("ReadScopeStatus", $"Error centering ({targetMechPosition.RAm * 15.0:F2}°,{targetMechPosition.DECm:F2}°)");
+                                LogMessage("ReadScopeStatus", $"Error centering ({targetMechPosition.RAm * 15.0:F2}Â°,{targetMechPosition.DECm:F2}Â°)");
                                 //slewError(-1);
                                 restartReadScopeStatusTimer();
                                 return false;
