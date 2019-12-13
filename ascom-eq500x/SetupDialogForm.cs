@@ -14,7 +14,7 @@
 // Date			Who	Vers	Description
 // -----------	---	-----	-------------------------------------------------------
 // 10-Jun-2019	ED	0.0.1	Initial edit, created from ASCOM driver template
-// 31-Oct-2019  ED  1.2     Release 1.2
+// 31-Oct-2019  ED	1.2		Release 1.2
 // --------------------------------------------------------------------------------
 //
 using System;
