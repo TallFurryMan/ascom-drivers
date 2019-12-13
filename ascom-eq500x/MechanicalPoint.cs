@@ -1,4 +1,23 @@
-﻿using System;
+﻿//tabs=4
+// --------------------------------------------------------------------------------
+// 
+// ASCOM Telescope driver for Omegon EQ500X
+//
+// Description:	This is an ASCOM driver supporting control of the Omegon EQ-500-X 
+//				Equatorial Mount.
+//
+// Implements:	ASCOM Telescope interface version: 6.4
+// Author:		(ED) Eric Dejouhanet <eric.dejouhanet@gmail.com>
+//
+// Edit Log:
+//
+// Date			Who	Vers	Description
+// -----------	---	-----	-------------------------------------------------------
+// 10-Jun-2019	ED	0.0.1	Initial edit, created from ASCOM driver template
+// 31-Oct-2019  ED  1.2     Release 1.2
+// --------------------------------------------------------------------------------
+//
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
